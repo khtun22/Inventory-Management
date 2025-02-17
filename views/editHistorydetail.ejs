@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit History Detail</title>
+    <link rel="stylesheet" href="/main.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <%- include('partials/sidebar', { username: user.username, userid: user.userid }) %> 
+
+    <!-- Main Content -->
+    <div class="content-container1">
+        
+        <div class="form-container">
+            <label class="label2"><%= transaction.tranname %> </label>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="form-row1">
+                <div class="form-item">
+                    <label for="todaydate">Date: <%= transaction.trandate %></label>
+                </div>
+                <div class="form-item">
+                    <label for="transactionid">Transaction No: <%= transaction.transactionid %></label>
+                </div>
+            </div>
+            <div class="form-item">
+                
+            </div>
+            <div class="breakLine">
+                <hr>
+            </div>
+            
+            <% if (transaction.tranname === 'Incoming' || transaction.tranname === 'Outgoing') { %>
+                <div class="form-row3">
+                    <div class="form-item">
+                        <label for="store">Store: <%= transaction.storeName %></label>
+                    </div>
+                    <div class="form-item">
+                        <label for="category">Category: <%= transaction.categoryName %></label>
+                    </div>
+                </div>
+                
+            
+            <% } else if (transaction.tranname === 'Transfer') { %>
+                <label class="label1">From</label>
+                <div class="form-row3">
+                    
+                    <div class="form-item">
+                        <label for="from-store"> Store: <%= transaction.fromStore %></label>
+                        
+                    </div>
+                    <div class="form-item">
+                        <label for="from-category">Category: <%= transaction.fromCategory %></label>
+ 
+                    </div>
+                </div>
+                <div class="breakLine">
+                    <hr>
+                </div>
+                <label class="label1">To</label>
+                <div class="form-row3">
+                    
+                    <div class="form-item">
+                        <label for="to-store">Store: <%= transaction.toStore %></label>                        
+                    </div>
+                    <div class="form-item">
+                        <label for="to-category">Category: <%= transaction.toCategory %></label>  
+                    </div>
+                </div>  
+            <% } %>
+            
+            <div class="breakLine">
+                <hr>
+            </div>
+            <table id="itemTable" class="custom-table">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Item Name</th>
+                        <th>Exp Date</th>
+                        <th>Item Qty</th>
+                        <th>Edit Qty</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% items.forEach((item, index) => { %>
+                        <tr>
+                            <td><%= index + 1 %></td>
+                            <td><%= item.itemname %></td>
+                            <td>
+                                <%= item.expdate ? item.expdate : 'null' %>
+                            </td>
+                            <td><%= item.originalQty %></td>
+                            <td>
+                                <input type="number" 
+                                    class="edit-qty" 
+                                    min="<%= item.minAllow %>" 
+                                    max="<%= item.maxAllow %>" 
+                                    value="<%= item.originalQty %>"
+                                    oninput="validateNumberInput(this)">
+
+                            </td>
+                            <td>
+                                <input type="hidden" name="itemid" value="<%= item.itemid %>">
+                                <button class="btn btn-add" onclick="addToEditTable(this)">Edit</button>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+                
+            </table>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <table id="editHistoryTable" class="custom-table">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Item Name</th>
+                        <th>Exp Date</th>
+                        <th>Edited Qty</th>
+                        <th>Original Qty</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows dynamically added here -->
+                </tbody>
+            </table>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="form-row2">
+                <label for="TotalQty" class="align-right">Total Quantity: <span id="totalQuantity">0</span></label>
+            </div>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="form-row footer-buttons">
+                <button class="btn btn-cancel" onclick="location.href='/editHistory'">Back</button>
+                <button class="btn btn-save" type="submit">Save</button>
+            </div>
+        </div> 
+        
+    </div>    
+    <script>
+        function validateNumberInput(input) {
+            let value = parseInt(input.value, 10);
+            const min = parseInt(input.min, 10);
+            const max = parseInt(input.max, 10);
+
+            if (isNaN(value) || value < min) {
+                input.value = min;
+            } else if (value > max) {
+                input.value = max;
+            }
+        }
+
+        // Add Edited Item to Edit History Table
+        function addToEditTable(button) {
+            const row = button.parentElement.parentElement;
+            const itemName = row.cells[1].textContent.trim();
+            const expDate = row.cells[2].textContent.trim();
+            const originalQty = parseInt(row.cells[3].textContent.trim());
+            const editedQty = parseInt(row.querySelector('.edit-qty').value.trim());
+            const itemId = row.querySelector('input[name="itemid"]').value;
+
+            // Check for duplicate entries in the editHistoryTable
+            const editHistoryTable = document.getElementById('editHistoryTable').getElementsByTagName('tbody')[0];
+            const rows = Array.from(editHistoryTable.rows);
+
+            const isDuplicate = rows.some(r => r.querySelector('input[name="itemid"]').value === itemId);
+            if (isDuplicate) {
+                alert('This item is already added to the edit list.');
+                return;
+            }
+
+            // Create a new row in the Edit History Table
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${rows.length + 1}</td>
+                <td>${itemName}</td>
+                <td>${expDate}</td>
+                <td>${editedQty}</td>
+                <td>${originalQty}</td>
+                <td>
+                    <input type="hidden" id="transactionId" value="<%= transaction.transactionid %>">
+                    <input type="hidden" id="tranName" value="<%= transaction.tranname %>">
+
+                    <input type="hidden" name="itemid" value="${itemId}">
+                    <button class="btn-delete" onclick="removeFromEditTable(this)">X</button>
+                </td>
+            `;
+            editHistoryTable.appendChild(newRow);
+
+            // Recalculate the total quantity after editing
+            calculateTotalQuantity();
+        }
+
+        // Remove Item from Edit History Table
+        function removeFromEditTable(button) {
+            const row = button.parentElement.parentElement;
+            const table = row.parentElement;
+
+            // Remove the row
+            table.removeChild(row);
+
+            // Recalculate row numbers
+            Array.from(table.rows).forEach((row, index) => {
+                row.cells[0].textContent = index + 1;
+            });
+
+            // Recalculate the total quantity after removal
+            calculateTotalQuantity();
+        }
+
+        // Calculate Total Quantity
+        function calculateTotalQuantity() {
+            const editHistoryTable = document.getElementById('editHistoryTable').getElementsByTagName('tbody')[0];
+            const rows = Array.from(editHistoryTable.rows);
+
+            // Sum of edited quantities
+            const totalQty = rows.reduce((sum, row) => {
+                const qty = parseInt(row.cells[2].textContent.trim());
+                return sum + (isNaN(qty) ? 0 : qty);
+            }, 0);
+
+            // Update the total quantity display
+            document.getElementById('totalQuantity').textContent = totalQty;
+        }
+        // Save Edited Data to Backend
+        // Save Edited Data to Backend
+        document.querySelector('.btn-save').addEventListener('click', async function () {
+            const editHistoryTable = document.getElementById('editHistoryTable').getElementsByTagName('tbody')[0];
+            const rows = Array.from(editHistoryTable.rows);
+
+            if (rows.length === 0) {
+                alert('No items to save.');
+                return;
+            }
+
+            // Collect Edited Items Data
+            const editedItems = rows.map(row => ({
+                itemId: row.querySelector('input[name="itemid"]').value,
+                editedQty: parseInt(row.cells[3].textContent.trim()),
+                originalQty: parseInt(row.cells[4].textContent.trim())
+            }));
+
+            // Get Transaction Data from Hidden Inputs
+            const transactionId = document.getElementById('transactionId').value;
+            const tranName = document.getElementById('tranName').value;
+
+            try {
+                // Send Edited Data to the Backend
+                const response = await fetch('/editHistorydetail/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        transactionId,
+                        tranName,
+                        editedItems,
+                    }),
+                });
+
+                if (response.ok) {
+                    alert('Transaction updated successfully.');
+                    window.location.href = '/editHistory'; // Redirect to the history page
+                } else {
+                    const errorText = await response.text();
+                    alert(`Failed to update transaction: ${errorText}`);
+                }
+            } catch (error) {
+                console.error('Error updating transaction:', error);
+                alert('An error occurred while updating the transaction.');
+            }
+        });
+
+
+        
+
+    </script>
+</body>
+</html>
