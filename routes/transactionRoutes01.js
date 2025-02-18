@@ -55,7 +55,7 @@ router.get('/items/:categoryId', async (req, res) => {
     try {
         const categoryId = req.params.categoryId;
         const [items] = await db.query(
-            'SELECT itemid, itemname, itemqty, expdate FROM item WHERE categoryid = ? AND itemqty > 0',
+            'SELECT itemid, itemname, itemqty, expdate, alertqty, alertcon, alertdate FROM item WHERE categoryid = ? AND itemqty > 0',
             [categoryId]
         );
         res.json(items); // Send items as a JSON response
@@ -64,7 +64,6 @@ router.get('/items/:categoryId', async (req, res) => {
         res.status(500).send('Error fetching items.');
     }
 });
-
 
 router.get('/out', async (req, res) => {
     const userid = req.session.user.userid; 

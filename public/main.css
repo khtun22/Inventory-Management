@@ -220,6 +220,7 @@ body {
     background-color: #4a8ac1;
 }
 
+
 /* Cancel Button */
 .btn-cancel {
     background-color: gray;
@@ -249,7 +250,36 @@ body {
     background-color: #cc0000; /* Even darker red when clicked */
     transform: scale(0.95); /* Slightly shrink the button when clicked */
 }
+.btn1 {
+    padding: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 5px;
+    width: 100px; /* Set a fixed width for all buttons */
+}
 
+.btn1-add {
+    background-color: #61A7E8;
+    color: white;
+}
+
+.btn1-add:hover {
+    background-color: #4a8ac1;
+}
+
+
+/* Cancel Button */
+.btn1-cancel {
+    background-color: gray;
+    color: white;
+}   
+
+.btn1-cancel:hover {
+    background-color: darkgray;
+}
 .buttons-container {
     margin-top: 60px;
     padding: 20px;
@@ -263,6 +293,8 @@ body {
 .form-container {
     margin-top: 20px; /* Push below top bar */
     padding: 20px;
+    max-width: 100%;
+    overflow-x: auto;
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -506,6 +538,7 @@ table th {
     text-align: center;
 }
 
+
 .breakLine hr {
     border: none;
     border-top: 0.7px solid black; /* Black color and 2px thickness */
@@ -719,6 +752,28 @@ table th {
     }
 }
 
+.alert-qty {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s ease-in-out;
+}
+
+/* Highlight the field when focused */
+.alert-qty:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Disable input field when quantity is zero */
+.alert-qty:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
 
 .edit-qty {
     padding: 5px;
@@ -796,4 +851,84 @@ table th {
 }
 .form-row4 div:last-child {
     margin-right: 0;
+}
+.uniform-width {
+    width: 100%; /* Set a fixed width */
+    box-sizing: border-box; /* Ensure padding and border are included in the width */
+}
+
+
+.alert-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px; /* Adjust text size */
+}
+
+.alert-table th, .alert-table td {
+    padding: 10px;  
+    text-align: left;
+    white-space: nowrap;
+    border: 0.5px solid rgb(83, 83, 83);
+}
+.alert-table td .outgoing-qty {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+    width: 100%; /* Make it fill the entire cell */
+    max-width: 100px; /* Set a reasonable max width */
+}
+.alert-table td .edit-input {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+    width: 100%; /* Make it fill the entire cell */
+    max-width: 100px; /* Set a reasonable max width */
+}
+
+.alert-table td .edit-qty {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+    width: 85%; /* Make it fill the entire cell */
+    max-width: 100px; /* Set a reasonable max width */
+}
+.alert-table th {
+    background-color: #d4d4d4;
+    font-weight: bold;
+}
+
+.alert-table tr:nth-child(even) {
+    background-color: #efefefb6;
+}
+
+.alert-table tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+.alert-table th:nth-child(1), .alert-table td:nth-child(1) {
+    width: 5%; /* Adjust column size */
+}
+
+.alert-table th:nth-child(2), .alert-table td:nth-child(2) {
+    width: 25%; /* Adjust column size name */
+}
+
+.alert-table th:nth-child(3), .alert-table td:nth-child(3) {
+    width: 10%; /* Adjust column size qty*/
+}
+
+.alert-table th:nth-child(4), .alert-table td:nth-child(4) {
+    width: 10%; /* Adjust column size aqty*/
+}
+.alert-table th:nth-child(5), .alert-table td:nth-child(5) {
+    width: 15%; /* Adjust column size acoon*/
+}
+.alert-table th:nth-child(6), .alert-table td:nth-child(6) {
+    width: 10%; /* Adjust column size expdate*/
+}
+.alert-table th:nth-child(7), .alert-table td:nth-child(7) {
+    width: 10%; /* Adjust column size aexpdate */
+}
+.alert-table th:nth-child(8), .alert-table td:nth-child(8) {
+    width: 15%; /* Adjust column size action*/
 }

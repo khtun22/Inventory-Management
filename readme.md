@@ -28,3 +28,9 @@ git reset --hard <commit-id> (restore project)
 
 git push --force origin main 
 
+
+git status
+git add .
+git commit -m "Describe the update"
+git push origin main
+

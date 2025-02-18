@@ -4,7 +4,9 @@ import time
 
 def totorandom_number():
     
-    a=[1,2,3,4,5,6,7,8,9,10]
-    b=max(a[0:5])
-    print(b)
+    a=['cda','fed', 'jih', 'mnk']
+    for i in range(len(a)):
+        a[i]="".join(sorted(a[i]))
+    print(a[0][0])
+    
 totorandom_number()  # BAD SET
