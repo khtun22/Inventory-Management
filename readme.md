@@ -32,5 +32,7 @@ git push --force origin main
 git status
 git add .
 git commit -m "Describe the update"
+
+git branch -M main
 git push origin main
 

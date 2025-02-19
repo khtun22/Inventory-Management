@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="/main.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <%- include('partials/sidebar', { username: user.username, userid: user.userid }) %>
+
+    <!-- Main Content -->
+    <div class="content-container">
+        <div class="form-container">
+            <div class="form-row1">
+                <h3>Profile Settings</h3>
+                <button id="edit-btn" class="btn-editprofile">Edit</button>
+            </div>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <!-- Username -->
+            <div class="form-row4">
+                <label>Username:</label>
+                <label id="username-label"><%= user.username %></label>
+                <input type="text" id="username" value="<%= user.username %>" style="display: none;">
+                <p class="error" id="usernameError" style="display: none;">Username must be at least 3 characters.</p>
+            </div>
+
+            <!-- Email -->
+            <div class="form-row4">
+                <label>Email:</label>
+                <label id="email-label"><%= user.email %></label>
+                <input type="email" id="email" value="<%= user.email %>" style="display: none;">
+                <p class="error" id="emailError" style="display: none;"> Invalid email</p>
+            </div>
+
+            <!-- Phone Number -->
+            <div class="form-row4">
+                <label>Phone Number:</label>
+                <label id="phoneno-label"><%= user.phoneno %></label>
+                <input type="text" id="phoneno" value="<%= user.phoneno %>" style="display: none;">
+                <p class="error" id="phonenoError" style="display: none;"> Invalid Phone</p>
+            
+            </div>
+
+            <!-- Password -->
+            <div class="form-row4" id="password-row" style="display: none;">
+                <label>New Password:</label>
+                <input type="password" value="<%= user.password %>" id="password">
+                <p class="error" id="passwordLengthError" style="display: none;">Password must be at least 8 characters.</p>
+            </div>
+
+            <!-- Retype Password -->
+            <div class="form-row4" id="retype-password-row" style="display: none;">
+                <label>Retype Password:</label>
+                <input type="password"  value="<%= user.password %>" id="retype-password">
+                <p class="error" id="passwordError" style="display: none;">Passwords do not match.</p>
+            </div>
+
+            <!-- Alert Time -->
+            <div class="form-row4">
+                <label>Alert Time:</label>
+                <label id="alerttime-label">formatTime(<%= user.alerttime %>)</label>
+                
+                <input type="time" id="alerttime" value="<%= user.alerttime %>" style="display: none;">
+            </div>
+
+            <!-- Buttons -->
+            <div class="form-row" id="buttons-row" style="display: none;">
+                
+                <button class="btn btn-cancel" onclick="cancelEdit()">Cancel</button>
+                <button class="btn btn-save" onclick="updateProfile()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editButton = document.getElementById('edit-btn');
+        const saveCancelRow = document.getElementById('buttons-row');
+
+        // Fields
+        const fields = ['username', 'email', 'phoneno', 'alerttime'];
+        const passwordRow = document.getElementById('password-row');
+        const retypePasswordRow = document.getElementById('retype-password-row');
+
+        let originalData = {}; // To store initial values
+
+        // Enable Edit Mode
+        editButton.addEventListener('click', () => {
+            originalData = {}; // Reset original values
+
+            fields.forEach(field => {
+                originalData[field] = document.getElementById(field).value;
+
+                document.getElementById(`${field}-label`).style.display = 'none';
+                document.getElementById(field).style.display = 'inline-block';
+            });
+
+            passwordRow.style.display = 'flex';
+            retypePasswordRow.style.display = 'flex';
+            saveCancelRow.style.display = 'block';
+            editButton.style.display = 'none';
+        });
+
+        // Cancel Edit
+        function cancelEdit() {
+            fields.forEach(field => {
+                document.getElementById(field).value = originalData[field];
+                document.getElementById(`${field}-label`).textContent = originalData[field];
+
+                document.getElementById(`${field}-label`).style.display = 'inline-block';
+                document.getElementById(field).style.display = 'none';
+            });
+            document.getElementById('alerttime-label').textContent = formatTime(originalData['alerttime']);
+
+
+            passwordRow.style.display = 'none';
+            retypePasswordRow.style.display = 'none';
+            saveCancelRow.style.display = 'none';
+            editButton.style.display = 'block';
+        }
+        
+
+        // Save Profile Update
+        async function updateProfile() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const phoneno = document.getElementById('phoneno').value;
+            const password = document.getElementById('password').value;
+            const retypePassword = document.getElementById('retype-password').value;
+            const alerttime = document.getElementById('alerttime').value;
+
+            // Validation
+            let valid = true;
+
+            if (username.length < 3) {
+                document.getElementById('usernameError').style.display = 'block';
+                valid = false;
+            } else {
+                document.getElementById('usernameError').style.display = 'none';
+            }
+
+            if (password.length < 8 || !password) {
+                document.getElementById('passwordLengthError').style.display = 'block';
+                valid = false;
+            } else {
+                document.getElementById('passwordLengthError').style.display = 'none';
+            }
+            if (!validateEmail(email)) {
+                document.getElementById('emailError').style.display = 'block';
+                valid = false;
+            } else {
+                document.getElementById('emailError').style.display = 'none';
+            }
+            if (!phoneno) {
+                document.getElementById('phonenoError').style.display = 'block';
+                valid = false;
+            } else {
+                document.getElementById('phonenoError').style.display = 'none';
+            }
+
+            if (password && password !== retypePassword) {
+                document.getElementById('passwordError').style.display = 'block';
+                valid = false;
+            } else {
+                document.getElementById('passwordError').style.display = 'none';
+            }
+            
+
+            if (!valid) return;
+
+            const updatedData = { username, email, phoneno, password: password || null, alerttime };
+
+            try {
+                const response = await fetch('/profile/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedData),
+                });
+
+                const result = await response.text();
+
+                if (!response.ok) {
+                    document.getElementById('emailError').textContent = result;
+                    document.getElementById('emailError').style.display = 'block';
+                } else {
+                    alert('Profile updated successfully.');
+
+                    // Update labels & switch back to view mode
+                    fields.forEach(field => {
+                        document.getElementById(`${field}-label`).textContent = document.getElementById(field).value;
+                        document.getElementById(`${field}-label`).style.display = 'inline-block';
+                        document.getElementById(field).style.display = 'none';
+                    });
+                    document.getElementById('alerttime-label').textContent = formatTime(alerttime);
+
+
+                    passwordRow.style.display = 'none';
+                    retypePasswordRow.style.display = 'none';
+                    saveCancelRow.style.display = 'none';
+                    editButton.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('❌ Error updating profile:', error);
+                alert('An error occurred while updating the profile.');
+            }
+        }
+        function formatTime(time) {
+            const [hours, minutes] = time.split(':');
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const formattedHours = hours % 12 || 12;
+            return `${formattedHours}:${minutes}:${period}`;
+        }
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(String(email).toLowerCase());
+        }
+
+        // Format the alert time on page load
+        document.getElementById('alerttime-label').textContent = formatTime('<%= user.alerttime %>');
+    
+    </script>
+</body>
+</html>

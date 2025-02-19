@@ -30,6 +30,7 @@ const transactionRoutes01 = require('./routes/transactionRoutes01');
 const adjustmentRoutes = require('./routes/adjustmentRoutes');
 const editRoutes = require('./routes/editRoutes');
 const alertRoutes = require('./routes/alertRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 // Use routes
 app.use('/', userRoutes);
 app.use('/', dashboardRoutes); 
@@ -38,6 +39,7 @@ app.use('/', transactionRoutes01);
 app.use('/', editRoutes);
 app.use('/', adjustmentRoutes);
 app.use('/', alertRoutes);
+app.use('/', profileRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;

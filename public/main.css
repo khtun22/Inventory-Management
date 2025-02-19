@@ -211,12 +211,12 @@ body {
     width: 150px; /* Set a fixed width for all buttons */
 }
 
-.btn-primary, .btn-store, .btn-location, .btn-add, .btn-save, .btn-edit {
+.btn-primary, .btn-store, .btn-location, .btn-add, .btn-save, .btn-edit, .btn-editprofile {
     background-color: #61A7E8;
     color: white;
 }
 
-.btn-primary:hover, .btn-store:hover, .btn-location:hover, .btn-add:hover, .btn-save:hover, .btn-edit:hover {
+.btn-primary:hover, .btn-store:hover, .btn-editprofile:hover,.btn-location:hover, .btn-add:hover, .btn-save:hover, .btn-edit:hover {
     background-color: #4a8ac1;
 }
 
@@ -329,7 +329,42 @@ body {
     justify-content: space-between;
     
 }
+.form-row4 {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    
+}
 
+.form-row4 label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: inline-block;
+    width: 150px;
+}
+
+.form-row4 input, .form-row4 span{
+    width: calc(50%);
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-row4 label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: inline-block;
+    width: 150px;
+}
+
+.form-row4 input, .form-row4 select, .form-row4 span{
+    width: calc(50% - 10px);
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
 .form-item {
     flex: 1;
     margin-right: 10px;
@@ -361,13 +396,6 @@ body {
 }
 
 .form-row label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: inline-block;
-    width: 150px;
-}
-
-.form-row4 label {
     font-weight: bold;
     margin-bottom: 5px;
     display: inline-block;
@@ -410,7 +438,7 @@ body {
 }
 
 
-.form-row input, .form-row select {
+.form-row input, .form-row select, .form-row span{
     width: calc(50% - 10px);
     padding: 8px;
     border: 1px solid #ccc;
@@ -548,6 +576,7 @@ table th {
     margin-left: -20px;
     margin-right: -20px;
 }
+
 .breakLine1 hr {
     border: none;
     border-top: 0.7px solid black; /* Black color and 2px thickness */
@@ -931,4 +960,16 @@ table th {
 }
 .alert-table th:nth-child(8), .alert-table td:nth-child(8) {
     width: 15%; /* Adjust column size action*/
+}
+
+.btn-editprofile {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 5px;
+    width: 150px; /* Set a fixed width for all buttons */
+    height: 40px;
 }

@@ -32,7 +32,7 @@ router.get('/register', (req, res) => {
 // POST /register
 router.post('/register', async (req, res) => {
     const { username, password, confirmPassword, email, phoneno } = req.body;
-
+    const defaultAlertTime = '12:00:00';
     // Validate username length
     if (username.length < 3) {
         return res.render('register', { title: 'Register', errorMessage: 'Username must be at least 3 characters long' });
@@ -65,12 +65,10 @@ router.post('/register', async (req, res) => {
         }
 
         // Insert new user
-        await db.query('INSERT INTO user (username, password, email, phoneno) VALUES (?, ?, ?, ?)', [
-            username,
-            password,
-            email,
-            phoneno,
-        ]);
+        await db.query(
+            'INSERT INTO user (username, password, email, phoneno, alerttime) VALUES (?, ?, ?, ?, ?)',
+            [username, password, email, phoneno, defaultAlertTime]
+        );
 
         // Fetch the newly registered user
         const [newUser] = await db.query('SELECT * FROM user WHERE username = ?', [username]);
