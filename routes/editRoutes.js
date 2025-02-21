@@ -88,9 +88,8 @@ router.post('/editHistory/getTransactions', async (req, res) => {
     }
 });
 router.post('/editHistorydetail/save', async (req, res) => {
-    const { transactionId, tranName, editedItems } = req.body;
+    const { transactionId, tranName, editedItems, totalQty } = req.body;
     const userid = req.session.user.userid;
-
     try {
         // Start a Transaction
         await db.query('START TRANSACTION');
@@ -169,6 +168,10 @@ router.post('/editHistorydetail/save', async (req, res) => {
                 }
             }
         }
+        await db.query(
+            `UPDATE transaction SET trantotalqty = trantotalqty + ? WHERE transactionid = ?`,
+            [totalQty, transactionId]
+        );
 
         // Commit the Transaction
         await db.query('COMMIT');

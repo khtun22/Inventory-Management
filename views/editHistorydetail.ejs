@@ -135,7 +135,7 @@
                 <hr>
             </div>
             <div class="form-row2">
-                <label for="TotalQty" class="align-right">Total Quantity: <span id="totalQuantity">0</span></label>
+                <label for="TotalQty" class="align-right">Total Edit Quantity: <span id="totalQuantity">0</span></label>
             </div>
             <div class="breakLine">
                 <hr>
@@ -223,21 +223,23 @@
             const editHistoryTable = document.getElementById('editHistoryTable').getElementsByTagName('tbody')[0];
             const rows = Array.from(editHistoryTable.rows);
 
-            // Sum of edited quantities
+            // Calculate Total Quantity as (Edited Qty - Original Qty)
             const totalQty = rows.reduce((sum, row) => {
-                const qty = parseInt(row.cells[2].textContent.trim());
-                return sum + (isNaN(qty) ? 0 : qty);
+                const editedQty = parseInt(row.cells[3].textContent.trim()) || 0;
+                const originalQty = parseInt(row.cells[4].textContent.trim()) || 0;
+                return sum + (editedQty - originalQty);
             }, 0);
 
             // Update the total quantity display
             document.getElementById('totalQuantity').textContent = totalQty;
         }
+
         // Save Edited Data to Backend
         // Save Edited Data to Backend
         document.querySelector('.btn-save').addEventListener('click', async function () {
             const editHistoryTable = document.getElementById('editHistoryTable').getElementsByTagName('tbody')[0];
             const rows = Array.from(editHistoryTable.rows);
-
+            const totalQty = parseInt(document.getElementById('totalQuantity').textContent);
             if (rows.length === 0) {
                 alert('No items to save.');
                 return;
@@ -265,6 +267,7 @@
                         transactionId,
                         tranName,
                         editedItems,
+                        totalQty,
                     }),
                 });
 

@@ -145,7 +145,7 @@
                 <hr>
             </div>
             <div class="form-row2">
-                <label for="TotalQty" class="align-right">Total Quantity: <span id="totalQuantity">0</span></label>
+                <label for="TotalQty" class="align-right">Total Adjust Quantity: <span id="totalQuantity">0</span></label>
             </div>
             <div class="breakLine">
                 <hr>
@@ -255,7 +255,6 @@
                 const newRemainingQty = itemQty - newAdjustmentQty;
 
                 existingRow.cells[4].textContent = newAdjustmentQty;
-                existingRow.cells[5].textContent = newRemainingQty;
 
                 calculateTotalQuantity();
                 adjustmentQtyInput.value = ''; // Clear the input box after adding
@@ -304,6 +303,25 @@
         function deleteAdjustmentRow(button) {
             const row = button.parentElement.parentElement; // Get the current row
             const table = row.parentElement; // Get the table body
+
+            const itemId = row.querySelector('input[name="itemid"]').value;
+            const categoryId = row.querySelector('input[name="categoryid"]').value;
+
+            // Find the corresponding row in the itemTable
+            const itemTableRows = Array.from(document.querySelectorAll('#itemTable tbody tr'));
+            const correspondingRow = itemTableRows.find(tr => {
+                return tr.querySelector('input[name="itemid"]').value === itemId;
+            });
+
+            if (correspondingRow) {
+                // Reset the input max value to its original itemQty
+                const itemQty = parseInt(correspondingRow.cells[2].textContent.trim());
+                const inputField = correspondingRow.cells[3].querySelector('input');
+                inputField.value = ''; // Clear the input box
+                inputField.setAttribute('max', 10000); // Reset max to original itemQty
+            }
+
+            // Remove the row from adjustmentTable
             table.removeChild(row);
 
             // Update row numbers
@@ -313,6 +331,7 @@
 
             // Recalculate Total Quantity
             calculateTotalQuantity();
+
             if (table.rows.length === 0) {
                 document.getElementById('reason').disabled = false;
                 document.getElementById('description').disabled = false;
@@ -335,6 +354,7 @@
         }
 
         document.querySelector('.btn-save').addEventListener('click', async function () {
+            
             const adjustmentTableBody = document.getElementById('adjustmentTable').getElementsByTagName('tbody')[0];
             const rows = Array.from(adjustmentTableBody.rows);
 
@@ -342,11 +362,21 @@
                 alert('No items to save.');
                 return;
             }
+            // Check if adjustmentQty is the same as itemqty
+            const isInvalidAdjustment = rows.some(row => {
+                const originalQty = parseInt(row.cells[5].textContent.trim()); // Original Item Qty
+                const adjustmentQty = parseInt(row.cells[4].textContent.trim()); // Adjusted Qty
+                return originalQty === adjustmentQty; // If both are the same, it's invalid
+            });
 
+            if (isInvalidAdjustment) {
+                alert('Adjustment quantity cannot be the same as the original quantity.');
+                return; // Stop saving
+            }
             // Collect transaction data
             const adjustmentId = parseInt(document.querySelector('label[for="adjustmentid"]').textContent.split(': ')[1]);
             const reason = document.getElementById('reason').value;
-            const description = document.getElementById('expireDate').value;
+            const description = document.getElementById('description').value;
             const adjDate = new Date().toISOString().slice(0, 19).replace('T', ' '); // Current date and time
             const totalQty = parseInt(document.getElementById('totalQuantity').textContent);
 
@@ -356,7 +386,6 @@
                 categoryId: row.querySelector('input[name="categoryid"]').value, // Hidden categoryid
                 adjustmentQty: parseInt(row.cells[4].textContent.trim()), // Outgoing qty
             }));
-
             try {
                 // Send data to the backend
                 const response = await fetch('/adjustment', {
