@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Item</title>
+    <link rel="stylesheet" href="/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <%- include('../partials/sidebar', { username: user.username, userid: user.userid }) %> 
+
+    <!-- Main Content -->
+    <div class="content-container">
+        <div class="form-container1">
+            <div class="report-container">
+                <div class="top-header">
+                    <label>Item Report</label>
+                    <button class="btn btn-cancel" onclick="location.href='/report'">Back</button>
+                    
+                </div>
+                <div class="breakLine">
+                    <hr>
+                </div>
+                <div class="form-row">
+                    <!-- Search Input -->
+                        <label for="searchInput">Search Item:</label>
+                        <input type="text" id="searchInput" class="search-box" placeholder="Search item name...">
+                    
+                        <label for="searchStoreInput">Search Store:</label>
+                        <input type="text" id="searchStoreInput" class="search-box" placeholder="Search store name...">
+                    
+                        <label for="searchCategoryInput">Search Category:</label>
+                        <input type="text" id="searchCategoryInput" class="search-box" placeholder="Search category name...">
+                    
+                </div>
+                <div class="top-bar3">
+                    
+                    <div class="export-dropdown">
+                        <button class="export-button">
+                            <span class="icon">&#9660;</span> Export
+                        </button>
+                        <div class="dropdown-content">
+                            <button onclick="exportToExcel()">📂 Export to Excel</button>
+                            <button onclick="printPDF()">🖨️ Print PDF</button>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <div class="breakLine">
+                    <hr>
+                </div>
+                
+                <table id="itemTable" class="custom-table1">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Item Name</th>
+                            <th>Store Name</th>
+                            <th>Category Name</th>
+                            <th>Item Qty</th>
+                            <th>Alert Qty</th>
+                            <th>Alert Con</th>
+                            <th>Exp Date</th>
+                            <th>Alert Date</th>
+    
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% item.forEach((item, index) => { %>
+                            <tr>
+                                <td><%= index + 1 %></td>
+                                <td><%= item.itemname %></td>
+                                <td><%= item.storename %></td>
+                                <td><%= item.categoryname %></td>
+                                <td><%= item.itemqty %></td>
+                                <td><%= item.alertqty %></td>
+                                <td><%= item.alertcon %></td>
+                                <td><%= item.expdate %></td>
+                                <td><%= item.alertdate %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Live search function
+        document.getElementById("searchInput").addEventListener("keyup", function () {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll("#itemTable tbody tr");
+
+            rows.forEach(row => {
+                let itemName = row.cells[1].textContent.toLowerCase();
+                row.style.display = itemName.startsWith(filter) ? "" : "none";
+            });
+        });
+
+        document.getElementById("searchStoreInput").addEventListener("keyup", function () {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll("#itemTable tbody tr");
+
+            rows.forEach(row => {
+                let storeName = row.cells[2].textContent.toLowerCase();
+                row.style.display = storeName.startsWith(filter) ? "" : "none";
+            });
+        });
+
+        document.getElementById("searchCategoryInput").addEventListener("keyup", function () {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll("#itemTable tbody tr");
+
+            rows.forEach(row => {
+                let categoryName = row.cells[3].textContent.toLowerCase();
+                row.style.display = categoryName.startsWith(filter) ? "" : "none";
+            });
+        });
+
+        // Export table data to Excel
+        function exportToExcel() {
+            let table = document.getElementById("itemTable");
+            let wb = XLSX.utils.table_to_book(table);
+            XLSX.writeFile(wb, "Item_Report.xlsx");
+        }
+
+        // Print filtered table data to PDF
+        function printPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(14);
+            doc.text("Item Report", 10, 10);
+
+            let tableData = [];
+            let rows = document.querySelectorAll("#itemTable tbody tr");
+
+            rows.forEach(row => {
+                if (row.style.display !== "none") {
+                    let rowData = [
+                        row.cells[0].textContent,
+                        row.cells[1].textContent,
+                        row.cells[2].textContent,
+                        row.cells[3].textContent,
+                        row.cells[4].textContent,
+                        row.cells[5].textContent,
+                        row.cells[6].textContent,
+                        row.cells[7].textContent,
+                        row.cells[8].textContent
+                    ];
+                    tableData.push(rowData);
+                }
+            });
+
+            doc.autoTable({
+                head: [["No.", "Item Name", "Store Name", "Category Name", "Item Qty", "Alert Qty", "Alert Con", "Exp Date", "Alert Date"]],
+                body: tableData,
+                startY: 20
+            });
+
+            doc.save("Item_Report.pdf");
+        }
+    </script>
+</body>
+</html>

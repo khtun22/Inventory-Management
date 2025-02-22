@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adjustment Detail</title>
+    <link rel="stylesheet" href="/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+    
+</head>
+<body>
+    <!-- Sidebar -->
+    <%- include('../partials/sidebar', { username: user.username, userid: user.userid }) %> 
+
+    <!-- Main Content -->
+    <div class="content-container1">
+        <div class="form-container">
+            <div class="top-header">
+                <label>Adjustment Detail </label>
+                <button class="btn btn-cancel" onclick="location.href='/reportlist/reportadjustment'">Back</button>
+                
+            </div>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="form-row1">
+                <div class="form-item">
+                    <label>Adjustment ID: <%= adjustment.adjustmentid %></label>
+                </div>
+                <div class="form-item">
+                    <label>Date: <%= adjustment.adjustdate %></label>
+                </div>
+            </div>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="form-row1">
+                <div class="form-item1">
+                    <label>Reason: <%= adjustment.reason %></label>
+                </div>
+                <div class="form-item1">
+                    <label>Total Qty: <%= adjustment.adjtotalqty %></label>
+                </div>
+            </div>
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="form-row1">
+                <div class="form-item">
+                    <label>Description: <%= adjustment.description %></label>
+                </div>
+            </div>
+            
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="form-row1">
+                <div class="form-item1">
+                    <label>Store: <%= storeName %></label>
+                </div>
+                <div class="form-item1">
+                    <label>Category: <%= categoryName %></label>
+                </div>
+            </div>
+
+            <div class="breakLine">
+                <hr>
+            </div>
+            <div class="top-bar3">
+                    
+                <div class="export-dropdown">
+                    <button class="export-button">
+                        <span class="icon">&#9660;</span> Export
+                    </button>
+                    <div class="dropdown-content">
+                        <button onclick="exportToExcel()">📂 Export to Excel</button>
+                        <button onclick="printPDF()">🖨️ Print PDF</button>
+                    </div>
+                </div>
+                
+            </div>
+            <!-- Transaction Table -->
+            <table id="adjustmentDetailTable" class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Adjust Qty</th>
+                        <th>Exp Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% items.forEach(item => { %>
+                        <tr>
+                            <td><%= item.itemname %></td>
+                            <td><%= item.adjustqty %></td>
+                            <td><%= item.expdate ? item.expdate : 'N/A' %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+
+        </div>
+    </div>
+    <script>
+        // Export to Excel
+        function exportToExcel() {
+            let wb = XLSX.utils.book_new(); // Create a new workbook
+
+            // Adjustment Details Data
+            let adjustmentData = [
+                ["Adjustment ID", "<%= adjustment.adjustmentid %>"],
+                ["Date", "<%= adjustment.adjustdate %>"],
+                ["Reason", "<%= adjustment.reason %>"],
+                ["Description", "<%= adjustment.description %>"],
+                ["Total Qty", "<%= adjustment.adjtotalqty %>"]
+            ];
+            let ws1 = XLSX.utils.aoa_to_sheet(adjustmentData);
+
+            // Table Data
+            let table = document.getElementById("adjustmentDetailTable");
+            let ws2 = XLSX.utils.table_to_sheet(table);
+
+            // Add sheets to workbook
+            XLSX.utils.book_append_sheet(wb, ws1, "Adjustment Info");
+            XLSX.utils.book_append_sheet(wb, ws2, "Adjustment Details");
+
+            // Save Excel File
+            XLSX.writeFile(wb, `Adjustment_Detail_<%= adjustment.adjustmentid %>.xlsx`);
+        }
+
+        // Export to PDF
+        function printPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Title
+            doc.setFontSize(16);
+            doc.text("Adjustment Detail Report", 10, 10);
+
+            // Adjustment Info
+            let adjustmentInfo = [
+                ["Adjustment ID", "<%= adjustment.adjustmentid %>"],
+                ["Date", "<%= adjustment.adjustdate %>"],
+                ["Reason", "<%= adjustment.reason %>"],
+                ["Description", "<%= adjustment.description %>"],
+                ["Total Qty", "<%= adjustment.adjtotalqty %>"]
+            ];
+
+            doc.autoTable({
+                head: [["Field", "Value"]],
+                body: adjustmentInfo,
+                startY: 20
+            });
+
+            // Table Data
+            let tableData = [];
+            let rows = document.querySelectorAll("#adjustmentDetailTable tbody tr");
+            
+            rows.forEach(row => {
+                let rowData = [
+                    row.cells[0].textContent,
+                    row.cells[1].textContent,
+                    row.cells[2].textContent
+                ];
+                tableData.push(rowData);
+            });
+
+            doc.autoTable({
+                head: [["Item Name", "Adjust Qty", "Exp Date"]],
+                body: tableData,
+                startY: doc.autoTable.previous.finalY + 10 // Add space after previous table
+            });
+
+            // Save PDF
+            doc.save(`Adjustment_Detail_<%= adjustment.adjustmentid %>.pdf`);
+        }
+    </script>
+
+</body>
+</html>

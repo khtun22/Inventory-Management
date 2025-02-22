@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Adjustment</title>
+    <link rel="stylesheet" href="/main.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <%- include('../partials/sidebar', { username: user.username, userid: user.userid }) %> 
+
+    <!-- Main Content -->
+    <div class="content-container1">
+        
+
+        <!-- Transaction Table -->
+        <div class="table-container">
+            <div class="top-header">
+                <label>Adjustment Report</label>
+                <button class="btn btn-cancel" onclick="location.href='/report'">Back</button>
+                
+            </div>
+        <!-- Radio Buttons -->
+        <!-- Date Range and Search -->
+            <div class="date-filter">
+                <label for="startDate">Start Date:</label>
+                <input type="date" id="startDate" name="startDate">
+                
+                <label for="endDate">End Date:</label>
+                <input type="date" id="endDate" name="endDate">
+                
+                <button id="searchButton">Search</button>
+            </div>
+            <table id="adjustmentTable" class="custom-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Reason</th>
+                        <th>Description</th>
+                        <th>Date</th>
+                        <th>Adjustment Total Qty</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Fetch adjustment on page load and search button click
+        async function fetchAdjustment() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            try {
+                const response = await fetch('/reportadjustment/getAdjustment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ startDate, endDate }),
+                });
+
+                const adjustments = await response.json();
+
+                // Populate the adjustment table
+                const tbody = document.getElementById('adjustmentTable').querySelector('tbody');
+                tbody.innerHTML = ''; // Clear existing rows
+
+                adjustments.forEach(adjustment => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${adjustment.adjustmentid}</td>
+                        <td>${adjustment.reason}</td>
+                        <td>${adjustment.description}</td>
+                        <td>${adjustment.adjustdate}</td>
+                        <td>${adjustment.adjtotalqty}</td>
+                        <td>
+                            <form method="POST" action="/reportlist/reportadjustmentdetail">
+                                <input type="hidden" name="adjustmentid" value="${adjustment.adjustmentid}">
+                                <button class="btn btn-add" type="submit">View</button>
+                            </form>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching adjustments:', error);
+                alert('Failed to fetch adjustments.');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('searchButton').addEventListener('click', fetchAdjustment);
+        
+        // Fetch adjustment on page load
+        window.onload = fetchAdjustment;
+    </script>
+</body>
+</html>

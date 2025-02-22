@@ -3,17 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outgoing Item</title>
+    <title>Report</title>
     <link rel="stylesheet" href="/main.css">
+    <style>
+        .report-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px;
+        }
+        .report-group {
+            width: 250px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .report-group h2 {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .report-list {
+            list-style: none;
+            padding: 0;
+        }
+        .report-list li {
+            padding: 8px;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            background: #fff;
+            transition: 0.3s;
+        }
+        .report-list li a {
+            text-decoration: none;
+            color: #333;
+            display: block;
+        }
+        .report-list li:hover {
+            background: #ddd;
+        }
+    </style>
 </head>
 <body>
 
-    </head> 
     <!-- Sidebar -->
     <%- include('partials/sidebar', { username: user.username, userid: user.userid }) %> 
+
     <!-- Main Content -->
-    
-    
+    <div class="content-container">
+        <h1>Report</h1>
+
+        <div class="report-container">
+            
+            <!-- Group 1: Item Reports -->
+            <div class="report-group">
+                <h2>Item</h2>
+                <ul class="report-list">
+                    <li><a href="/reportlist/reportstore">Store</a></li>
+                    <li><a href="/reportlist/reportcategory">Category</a></li>
+                    <li><a href="/reportlist/reportitem">Item</a></li>
+                </ul>
+            </div>
+
+            <!-- Group 2: Transaction Reports -->
+            <div class="report-group">
+                <h2>Transaction</h2>
+                <ul class="report-list">
+                    <li><a href="/reportlist/reportin">IN</a></li>
+                    <li><a href="/reportlist/reportout">OUT</a></li>
+                    <li><a href="/reportlist/reporttransfer">Transfer</a></li>
+                </ul>
+            </div>
+
+            <!-- Group 3: Change & Alert Logs -->
+            <div class="report-group">
+                <h2>Adjustment & Alert </h2>
+                <ul class="report-list">
+                    <li><a href="/reportlist/reportadjustment">Adjustment</a></li>
+                    <li><a href="/reportlist/reportalert">Alert</a></li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
 
 </body>
 </html>

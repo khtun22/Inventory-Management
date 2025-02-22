@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Category</title>
+    <link rel="stylesheet" href="/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+  
+</head>
+<body>
+    <!-- Sidebar -->
+    <%- include('../partials/sidebar', { username: user.username, userid: user.userid }) %> 
+
+    <!-- Main Content -->
+    <div class="content-container">
+        <div class="form-container1">
+            <div class="report-container">
+                <div class="top-header">
+                    <label>Category Report</label>
+                    <button class="btn btn-cancel" onclick="location.href='/report'">Back</button>
+                    
+                </div>
+                <div class="breakLine">
+                    <hr>
+                </div>
+                <div class="top-bar1">
+                    <!-- Search Input -->
+                    <div class="search-container">
+                        <label for="searchInput"><b>Search Category Name:</b></label>
+                        <input type="text" id="searchInput" class="search-box" placeholder="Search store name...">
+                    </div>
+                    
+                    <!-- Export Dropdown -->
+                    <div class="export-dropdown">
+                        <button class="export-button">
+                            <span class="icon">&#9660;</span> Export
+                        </button>
+                        <div class="dropdown-content">
+                            <button onclick="exportToExcel()">📂 Export to Excel</button>
+                            <button onclick="printPDF()">🖨️ Print PDF</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="breakLine">
+                    <hr>
+                </div>
+                <table id="categoryTable" class="custom-table1">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Category Name</th>
+                            <th>Store Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% category.forEach((category, index) => { %>
+                            <tr>
+                                <td><%= index + 1 %></td>
+                                <td><%= category.categoryname %></td>
+                                <td><%= category.storename %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    
+    
+
+    <script>
+        // Live search function
+        document.getElementById("searchInput").addEventListener("keyup", function () {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll("#categoryTable tbody tr");
+
+            rows.forEach(row => {
+                let categoryName = row.cells[1].textContent.toLowerCase();
+                row.style.display = categoryName.startsWith(filter) ? "" : "none";
+            });
+        });
+
+        // Export table data to Excel
+        function exportToExcel() {
+            let table = document.getElementById("categoryTable");
+            let wb = XLSX.utils.table_to_book(table);
+            XLSX.writeFile(wb, "Category_Report.xlsx");
+        }
+
+        // Print filtered table data to PDF
+        function printPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(14);
+            doc.text("Category Report", 10, 10);
+
+            let tableData = [];
+            let rows = document.querySelectorAll("#categoryTable tbody tr");
+
+            rows.forEach(row => {
+                if (row.style.display !== "none") {
+                    let rowData = [
+                        row.cells[0].textContent,
+                        row.cells[1].textContent,
+                        row.cells[2].textContent
+                    ];
+                    tableData.push(rowData);
+                }
+            });
+
+            doc.autoTable({
+                head: [["No.", "Category Name", "Store Name"]],
+                body: tableData,
+                startY: 20
+            });
+
+            doc.save("Category_Report.pdf");
+        }
+        
+    </script>
+</body>
+</html>

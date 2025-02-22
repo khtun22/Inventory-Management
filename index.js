@@ -31,6 +31,7 @@ const adjustmentRoutes = require('./routes/adjustmentRoutes');
 const editRoutes = require('./routes/editRoutes');
 const alertRoutes = require('./routes/alertRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 // Use routes
 app.use('/', userRoutes);
 app.use('/', dashboardRoutes); 
@@ -40,7 +41,9 @@ app.use('/', editRoutes);
 app.use('/', adjustmentRoutes);
 app.use('/', alertRoutes);
 app.use('/', profileRoutes);
+app.use('/', reportRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+ 
