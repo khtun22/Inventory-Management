@@ -5,12 +5,205 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Report Incoming Transaction</title>
     <link rel="stylesheet" href="/main.css">
+    <!-- Optionally include jQuery if not already added -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+
+    
 </head>
 <body>
-    <!-- Sidebar -->
-    <%- include('../partials/sidebar', { username: user.username, userid: user.userid }) %> 
+  <!-- Sidebar -->
+  <%- include('../partials/sidebar', { username: user.username, userid: user.userid }) %> 
 
-    <!-- Main Content -->
-    
+  <!-- Main Content -->
+  <div class="content-container1">
+    <div class="form-container">
+        <div class="top-header">
+            <label>Incoming transaction Report</label>
+            <button class="btn btn-cancel" onclick="location.href='/report'">Back</button>
+        </div>
+        <div class="breakLine"><hr></div>
+
+        
+        <!-- Filter Section -->
+        <div class="filter-container">
+            <label for="filterTransactionId">Transaction ID:</label>
+            <input type="number" id="filterTransactionId" placeholder="Enter Transaction ID">
+            
+            <label for="startDate">Start Date:</label>
+            <input type="date" id="startDate">
+            
+            <label for="endDate">End Date:</label>
+            <input type="date" id="endDate">
+            
+            <button id="filterButton">Search</button>
+        </div>
+
+
+        <div class="breakLine"><hr></div>
+        <div class="top-bar3">
+                    
+            <div class="export-dropdown">
+                <button class="export-button">
+                    <span class="icon">&#9660;</span> Export
+                </button>
+                <div class="dropdown-content">
+                    <button onclick="exportToExcel()">📂 Export to Excel</button>
+                    <button onclick="printPDF()">🖨️ Print PDF</button>
+                </div>
+            </div>
+            
+        </div>
+        <!-- Report Table -->
+        <table id="reportTable" class="custom-table">
+            <thead>
+            <tr>
+                <th>Transaction ID</th>
+                <th>Tran Date</th>
+                <th>Item Name</th>
+                <th>Exp Date</th>
+                <th>Quantity</th>
+                <th>Store,Category</th>
+            </tr>
+            </thead>
+            <tbody>
+            <% reportData.forEach(function(row) { %>
+                <tr>
+                <td><%= row.transactionid %></td>
+                <td><%= row.trandate %></td>
+                <td><%= row.itemname %></td>
+                <td><%= row.expdate ? row.expdate : 'N/A' %></td>
+                <td><%= row.tranqty %></td>
+                <td><%= row.storename %>, <%= row.categoryname %></td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+
+        <div class="breakLine"><hr></div>
+
+        <!-- Total Quantity -->
+        <div class="form-row2">
+            <label>Total Quantity: <span id="totalQty">0</span></label>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+          // Function to calculate and display total quantity of visible rows
+            function calculateTotal() {
+                let total = 0;
+                $('#reportTable tbody tr:visible').each(function() {
+                let qty = parseFloat($(this).find('td:nth-child(5)').text());
+                if (!isNaN(qty)) {
+                    total += qty;
+                }
+                });
+                $('#totalQty').text(total);
+            }
+        
+            // Filter function for Transaction ID and Date Range
+            $('#filterButton').on('click', async function() {
+                let filterId = $('#filterTransactionId').val().trim();
+                let startDate = $('#startDate').val();
+                let endDate = $('#endDate').val();
+        
+                try {
+                const response = await fetch('/reportlist/reportin/filter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filterId, startDate, endDate })
+                });
+        
+                const data = await response.json();
+                const tbody = $('#reportTable tbody');
+                tbody.empty(); // Clear table
+        
+                if (data.length === 0) {
+                    tbody.html('<tr><td colspan="6" style="text-align: center;">No matching records found.</td></tr>');
+                    return;
+                }
+        
+                data.forEach((row, index) => {
+                    let newRow = `
+                    <tr>
+                        <td>${row.transactionid}</td>
+                        <td>${row.trandate}</td>
+                        <td>${row.itemname}</td>
+                        <td>${row.expdate || 'N/A'}</td>
+                        <td>${row.tranqty}</td>
+                        <td>${row.storename}, ${row.categoryname}</td>
+                    </tr>`;
+                    tbody.append(newRow);
+                });
+        
+                calculateTotal();
+                } catch (error) {
+                console.error('Error fetching filtered transactions:', error);
+                }
+            });
+        });
+        function exportToExcel() {
+            let table = document.getElementById("reportTable");
+            let wb = XLSX.utils.table_to_book(table);
+            XLSX.writeFile(wb, "Incoming_Transaction_Report.xlsx");
+        }
+
+        function printPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(14);
+
+            let startDate = document.getElementById('startDate').value;
+            let endDate = document.getElementById('endDate').value;
+            let transactionId = document.getElementById('filterTransactionId').value.trim();
+            
+            let title = "Incoming Transaction Report";
+            if (startDate && endDate) {
+                title = `Incoming Transactions (${startDate} to ${endDate})`;
+            } else if (transactionId) {
+                title = `Incoming Transaction ID: ${transactionId}`;
+            }
+
+            doc.text(title, 10, 10);
+
+            let tableData = [];
+            let totalQty = 0;
+            let rows = document.querySelectorAll("#reportTable tbody tr");
+
+            rows.forEach(row => {
+                if (row.style.display !== "none") { // Include only visible rows
+                    let quantity = parseFloat(row.cells[4].textContent) || 0; // Column 5: Quantity
+                    totalQty += quantity;
+
+                    let rowData = [
+                        row.cells[0].textContent, // Transaction ID
+                        row.cells[1].textContent, // Tran Date
+                        row.cells[2].textContent, // Item Name
+                        row.cells[3].textContent, // Exp Date
+                        row.cells[4].textContent, // Quantity
+                        row.cells[5].textContent  // Store, Category
+                    ];
+                    tableData.push(rowData);
+                }
+            });
+
+            // Add table to PDF
+            doc.autoTable({
+                head: [["Transaction ID", "Tran Date", "Item Name", "Exp Date", "Quantity", "Store, Category"]],
+                body: tableData,
+                startY: 20
+            });
+
+            // Print Total Quantity after table
+            doc.text(`Total Quantity: ${totalQty}`, 10, doc.lastAutoTable.finalY + 10);
+
+            doc.save("Incoming_Transaction_Report.pdf");
+        }
+    </script>
+      
 </body>
 </html>

@@ -190,21 +190,124 @@ router.post('/reportlist/reportadjustmentdetail', async (req, res) => {
 });
 
 
-router.get('/reportlist/reportalert', async (req, res) => {
-    const userid = req.session.user.userid; 
+router.post('/reportlist/reportalert/filter', async (req, res) => {
+    const { filter } = req.body;
+    const userid = req.session.user.userid;
+
+    let extraCondition = ""; // Default is empty for "All"
+
+    if (filter === "outofstock") {
+        extraCondition = "AND i.itemqty = 0";
+    } else if (filter === "lowstock") {
+        extraCondition = `
+            AND (
+                (i.alertqty IS NOT NULL AND i.alertcon IS NULL AND i.itemqty < i.alertqty)
+                OR (i.alertcon = 'lt' AND i.itemqty < i.alertqty)
+                OR (i.alertcon = 'lte' AND i.itemqty <= i.alertqty)
+                OR (i.itemqty = 0)
+                OR (i.alertcon= '' AND i.itemqty <=i.alertqty)
+            )
+        `;
+    } else if (filter === "overstock") {
+        extraCondition = `
+            AND (
+                (i.alertcon = 'gt' AND i.itemqty > i.alertqty)
+                OR (i.alertcon = 'gte' AND i.itemqty >= i.alertqty)
+            )
+        `;
+    } else if (filter === "expire") {
+        extraCondition = `
+            AND (
+                (i.expdate IS NOT NULL AND i.alertdate IS NULL AND i.expdate <= CURDATE())
+                OR (i.expdate IS NOT NULL AND i.alertdate IS NOT NULL AND DATE_ADD(CURDATE(), INTERVAL i.alertdate DAY) >= i.expdate)
+            )
+        `;
+    }
+
     try {
-        res.render('reportlist/reportalert', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+        const [alertItems] = await db.query(`
+            SELECT 
+                i.itemname, 
+                s.storename, 
+                c.categoryname, 
+                i.itemqty, 
+                i.alertqty, 
+                i.alertcon, 
+                i.expdate, 
+                i.alertdate
+            FROM item i
+            JOIN category c ON i.categoryid = c.categoryid
+            JOIN store s ON c.storeid = s.storeid
+            WHERE s.userid = ?
+            AND (
+                (i.alertqty IS NOT NULL AND i.alertcon IS NULL AND i.itemqty < i.alertqty)
+                OR (i.alertcon = 'lt' AND i.itemqty < i.alertqty)
+                OR (i.alertcon = 'lte' AND i.itemqty <= i.alertqty)
+                OR (i.alertcon = 'gt' AND i.itemqty > i.alertqty)
+                OR (i.alertcon = 'gte' AND i.itemqty >= i.alertqty)
+                OR (i.expdate IS NOT NULL AND i.alertdate IS NULL AND i.expdate <= CURDATE())
+                OR (i.expdate IS NOT NULL AND i.alertdate IS NOT NULL AND DATE_ADD(CURDATE(), INTERVAL i.alertdate DAY) >= i.expdate)
+                OR (i.itemqty = 0)
+            ) 
+            ${extraCondition} 
+            ORDER BY s.storename ASC;
+        `, [userid]);
+
+        res.json(alertItems);
     } catch (error) {
-        console.error('Error fetching stores or transaction ID:', error);
-        res.render('reportlist/reportalert', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+        console.error('Error fetching alert items:', error);
+        res.status(500).send('Error fetching alert items.');
     }
 });
+
+router.get('/reportlist/reportalert', async (req, res) => {
+    const userid = req.session.user.userid;
+
+    try {
+        // SQL Query to get items that meet alert conditions
+        const [alertItems] = await db.query(`
+            SELECT 
+                i.itemname, 
+                s.storename, 
+                c.categoryname, 
+                i.itemqty, 
+                i.alertqty, 
+                i.alertcon, 
+                i.expdate, 
+                i.alertdate
+            FROM item i
+            JOIN category c ON i.categoryid = c.categoryid
+            JOIN store s ON c.storeid = s.storeid
+            WHERE s.userid = ? 
+            AND (
+                (i.alertqty IS NOT NULL AND i.alertcon IS NULL AND i.itemqty < i.alertqty)
+                OR
+                (i.alertcon = 'lt' AND i.itemqty < i.alertqty)
+                OR
+                (i.alertcon = 'lte' AND i.itemqty <= i.alertqty)
+                OR
+                (i.alertcon = 'gt' AND i.itemqty > i.alertqty)
+                OR
+                (i.alertcon = 'gte' AND i.itemqty >= i.alertqty)
+                OR
+                (i.expdate IS NOT NULL AND i.alertdate IS NULL AND i.expdate <= CURDATE())
+                OR
+                (i.expdate IS NOT NULL AND i.alertdate IS NOT NULL AND DATE_ADD(CURDATE(), INTERVAL i.alertdate DAY) >= i.expdate)
+                OR
+                (i.itemqty = 0)
+                )
+            ORDER BY s.storename ASC;
+        `, [userid]);
+
+        // Render the page with alert items
+        res.render('reportlist/reportalert', { user: req.session.user, alertItems });
+
+    } catch (error) {
+        console.error('Error fetching alert items:', error);
+        res.status(500).send('Error fetching alert items.');
+    }
+});
+
 router.get('/reportlist/reportcategory', async (req, res) => {
     const userid = req.session.user.userid;
     try {
@@ -239,20 +342,75 @@ router.get('/reportlist/reportedithistory', async (req, res) => {
     }
 });
 router.get('/reportlist/reportin', async (req, res) => {
-    const userid = req.session.user.userid; 
     try {
-        res.render('reportlist/reportin', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+      // Your SQL query joining transaction, transaction_detail, and item
+      const [reportData] = await db.query(`
+        SELECT t.transactionid, DATE_FORMAT(t.trandate, '%Y-%m-%d') AS trandate,
+               i.itemname, IFNULL(DATE_FORMAT(i.expdate, '%Y-%m-%d'), 'N/A') AS expdate,
+               td.tranqty, s.storename, c.categoryname
+        FROM transaction t
+        JOIN transaction_detail td ON t.transactionid = td.transactionid
+        JOIN item i ON td.itemid = i.itemid
+        JOIN category c ON i.categoryid=c.categoryid
+        JOIN store s ON s.storeid= c.storeid
+        WHERE t.tranname = 'IN' AND t.userid = ?
+        ORDER BY t.trandate DESC
+      `, [req.session.user.userid]);
+  
+      res.render('reportlist/reportin', { user: req.session.user, reportData });
     } catch (error) {
-        console.error('Error fetching stores or transaction ID:', error);
-        res.render('reportlist/reportin', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+      console.error('Error fetching incoming transactions:', error);
+      res.render('reportlist/reportin', { user: req.session.user, reportData: [] });
     }
 });
+
+router.post('/reportlist/reportin/filter', async (req, res) => {
+    const { filterId, startDate, endDate } = req.body;
+    const userid = req.session.user.userid;
+  
+    try {
+      let query = `
+        SELECT t.transactionid, DATE_FORMAT(t.trandate, '%Y-%m-%d') AS trandate,
+               i.itemname, IFNULL(DATE_FORMAT(i.expdate, '%Y-%m-%d'), 'N/A') AS expdate,
+               td.tranqty, s.storename, c.categoryname
+        FROM transaction t
+        JOIN transaction_detail td ON t.transactionid = td.transactionid
+        JOIN item i ON td.itemid = i.itemid
+        JOIN category c ON i.categoryid = c.categoryid
+        JOIN store s ON s.storeid = c.storeid
+        WHERE t.tranname = 'IN' AND t.userid = ?
+      `;
+
+      let queryParams = [userid];
+
+      // Apply Transaction ID filter if provided
+      if (filterId) {
+        query += ` AND t.transactionid = ?`;
+        queryParams.push(filterId);
+      }
+
+      // Apply Date Range filter if provided
+      if (startDate && endDate) {
+        query += ` AND t.trandate BETWEEN ? AND ?`;
+        queryParams.push(startDate, `${endDate} 23:59:59`);
+      } else if (startDate) {
+        query += ` AND t.trandate >= ?`;
+        queryParams.push(startDate);
+      } else if (endDate) {
+        query += ` AND t.trandate <= ?`;
+        queryParams.push(`${endDate} 23:59:59`);
+      }
+
+      query += ` ORDER BY t.trandate DESC`;
+
+      const [filteredData] = await db.query(query, queryParams);
+      res.json(filteredData);
+    } catch (error) {
+      console.error('Error fetching filtered incoming transactions:', error);
+      res.status(500).json([]);
+    }
+});
+
 router.get('/reportlist/reportitem', async (req, res) => {
     const userid = req.session.user.userid;
     try {
@@ -274,20 +432,75 @@ router.get('/reportlist/reportitem', async (req, res) => {
 });
 
 router.get('/reportlist/reportout', async (req, res) => {
-    const userid = req.session.user.userid; 
     try {
-        res.render('reportlist/reportout', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+      // Your SQL query joining transaction, transaction_detail, and item
+      const [reportData] = await db.query(`
+        SELECT t.transactionid, DATE_FORMAT(t.trandate, '%Y-%m-%d') AS trandate,
+               i.itemname, IFNULL(DATE_FORMAT(i.expdate, '%Y-%m-%d'), 'N/A') AS expdate,
+               td.tranqty, s.storename, c.categoryname
+        FROM transaction t
+        JOIN transaction_detail td ON t.transactionid = td.transactionid
+        JOIN item i ON td.itemid = i.itemid
+        JOIN category c ON i.categoryid=c.categoryid
+        JOIN store s ON s.storeid= c.storeid
+        WHERE t.tranname = 'OUT' AND t.userid = ?
+        ORDER BY t.trandate DESC
+      `, [req.session.user.userid]);
+  
+      res.render('reportlist/reportout', { user: req.session.user, reportData });
     } catch (error) {
-        console.error('Error fetching stores or transaction ID:', error);
-        res.render('reportlist/reportout', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+      console.error('Error fetching incoming transactions:', error);
+      res.render('reportlist/reportout', { user: req.session.user, reportData: [] });
     }
 });
+
+router.post('/reportlist/reportout/filter', async (req, res) => {
+    const { filterId, startDate, endDate } = req.body;
+    const userid = req.session.user.userid;
+  
+    try {
+      let query = `
+        SELECT t.transactionid, DATE_FORMAT(t.trandate, '%Y-%m-%d') AS trandate,
+               i.itemname, IFNULL(DATE_FORMAT(i.expdate, '%Y-%m-%d'), 'N/A') AS expdate,
+               td.tranqty, s.storename, c.categoryname
+        FROM transaction t
+        JOIN transaction_detail td ON t.transactionid = td.transactionid
+        JOIN item i ON td.itemid = i.itemid
+        JOIN category c ON i.categoryid = c.categoryid
+        JOIN store s ON s.storeid = c.storeid
+        WHERE t.tranname = 'OUT' AND t.userid = ?
+      `;
+
+      let queryParams = [userid];
+
+      // Apply Transaction ID filter if provided
+      if (filterId) {
+        query += ` AND t.transactionid = ?`;
+        queryParams.push(filterId);
+      }
+
+      // Apply Date Range filter if provided
+      if (startDate && endDate) {
+        query += ` AND t.trandate BETWEEN ? AND ?`;
+        queryParams.push(startDate, `${endDate} 23:59:59`);
+      } else if (startDate) {
+        query += ` AND t.trandate >= ?`;
+        queryParams.push(startDate);
+      } else if (endDate) {
+        query += ` AND t.trandate <= ?`;
+        queryParams.push(`${endDate} 23:59:59`);
+      }
+
+      query += ` ORDER BY t.trandate DESC`;
+
+      const [filteredData] = await db.query(query, queryParams);
+      res.json(filteredData);
+    } catch (error) {
+      console.error('Error fetching filtered incoming transactions:', error);
+      res.status(500).json([]);
+    }
+});
+
 
 router.get('/reportlist/reportstore', async (req, res) => {
     const userid = req.session.user.userid;
@@ -310,18 +523,79 @@ router.get('/reportlist/reportstore', async (req, res) => {
 
 
 router.get('/reportlist/reporttransfer', async (req, res) => {
-    const userid = req.session.user.userid; 
     try {
-        res.render('reportlist/reporttransfer', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+      // Your SQL query joining transaction, transaction_detail, and item
+      const [reportData] = await db.query(`
+        SELECT t.transactionid, DATE_FORMAT(t.trandate, '%Y-%m-%d') AS trandate,
+               i.itemname, IFNULL(DATE_FORMAT(i.expdate, '%Y-%m-%d'), 'N/A') AS expdate,
+               td.tranqty,  s1.storename AS sourceStore, c1.categoryname AS sourceCategory, 
+                s2.storename AS targetStore, c2.categoryname AS targetCategory
+        FROM transaction t
+            LEFT JOIN transaction_detail td ON t.transactionid = td.transactionid
+            LEFT JOIN item i ON td.itemid = i.itemid
+            LEFT JOIN category c1 ON t.sourceid = c1.categoryid OR i.categoryid = c1.categoryid
+            LEFT JOIN store s1 ON c1.storeid = s1.storeid
+            LEFT JOIN category c2 ON t.targetid = c2.categoryid
+            LEFT JOIN store s2 ON c2.storeid = s2.storeid
+            LEFT JOIN user u ON s1.userid = u.userid
+        WHERE t.tranname = 'TRAN' AND t.userid = ?
+        ORDER BY t.trandate DESC
+      `, [req.session.user.userid]);
+  
+      res.render('reportlist/reporttransfer', { user: req.session.user, reportData });
     } catch (error) {
-        console.error('Error fetching stores or transaction ID:', error);
-        res.render('reportlist/reporttransfer', { 
-            user: req.session.user, 
-            userid: req.session.user.userid 
-        });
+      console.error('Error fetching incoming transactions:', error);
+      res.render('reportlist/reporttransfer', { user: req.session.user, reportData: [] });
+    }
+});
+
+router.post('/reportlist/reporttransfer/filter', async (req, res) => {
+    const { filterId, startDate, endDate } = req.body;
+    const userid = req.session.user.userid;
+    try {
+      let query = `
+        SELECT t.transactionid, DATE_FORMAT(t.trandate, '%Y-%m-%d') AS trandate,
+               i.itemname, IFNULL(DATE_FORMAT(i.expdate, '%Y-%m-%d'), 'N/A') AS expdate,
+               td.tranqty,  s1.storename AS sourceStore, c1.categoryname AS sourceCategory, 
+                s2.storename AS targetStore, c2.categoryname AS targetCategory
+        FROM transaction t
+            LEFT JOIN transaction_detail td ON t.transactionid = td.transactionid
+            LEFT JOIN item i ON td.itemid = i.itemid
+            LEFT JOIN category c1 ON t.sourceid = c1.categoryid OR i.categoryid = c1.categoryid
+            LEFT JOIN store s1 ON c1.storeid = s1.storeid
+            LEFT JOIN category c2 ON t.targetid = c2.categoryid
+            LEFT JOIN store s2 ON c2.storeid = s2.storeid
+            LEFT JOIN user u ON s1.userid = u.userid
+        WHERE t.tranname = 'TRAN' AND t.userid = ?
+      `;
+
+      let queryParams = [userid];
+
+      // Apply Transaction ID filter if provided
+      if (filterId) {
+        query += ` AND t.transactionid = ?`;
+        queryParams.push(filterId);
+      }
+
+      // Apply Date Range filter if provided
+      if (startDate && endDate) {
+        query += ` AND t.trandate >= ? AND t.trandate <=?`;
+        queryParams.push(startDate, `${endDate} 23:59:59`);
+      } else if (startDate) {
+        query += ` AND t.trandate >= ?`;
+        queryParams.push(startDate);
+      } else if (endDate) {
+        query += ` AND t.trandate <= ?`;
+        queryParams.push(`${endDate} 23:59:59`);
+      }
+
+      query += ` ORDER BY t.trandate DESC`;
+
+      const [filteredData] = await db.query(query, queryParams);
+      res.json(filteredData);
+    } catch (error) {
+      console.error('Error fetching filtered incoming transactions:', error);
+      res.status(500).json([]);
     }
 });
 

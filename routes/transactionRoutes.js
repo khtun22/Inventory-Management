@@ -105,7 +105,7 @@ router.post('/in', async (req, res) => {
                 categoryId,
             } = item;
             const expDateValue = expDate || null;
-
+            const alertCon = alertCondition || null;
             // 1 Check for existing item with same itemname, expdate, and categoryid
             const [existingItem] = await db.query(
                 `SELECT itemid FROM item WHERE itemname = ? AND expdate = ? AND categoryid = ?`,
@@ -126,7 +126,7 @@ router.post('/in', async (req, res) => {
                     itemName,
                     itemQty,
                     alertQty,
-                    alertCondition,
+                    alertCon,
                     expDateValue,
                     alertDate,
                     categoryId,

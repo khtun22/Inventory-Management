@@ -17,6 +17,10 @@
         
         <!-- Input Form -->
         <div class="form-container">
+            <label class="label4">Transfer Transaction</label>
+            <div class="breakLine">
+                <hr>
+            </div>
             <div class="form-row1">
                 <div class="form-item">
                     <label for="todaydate">Date: <span id="todayDate"></span></label>
@@ -36,11 +40,9 @@
             <div class="breakLine">
                 <hr>
             </div>
-            <label class="label1">From</label>
-            <div class="form-row3">
+            <div class="form-row5">
                 
                 <div class="form-item">
-                    <label for="store">Store</label>
                     <select id="store" name="store">
                         <option value="">Select Store</option>
                         <% stores.forEach(store => { %>
@@ -49,10 +51,33 @@
                     </select>
                 </div>
                 <div class="form-item">
-                    <label for="category">Category</label>
                     <select id="category" name="category">
                         <option value="">Select Category</option>
                     </select>  
+                </div>
+                <div class="form-item2">
+                    <label >To</label>
+                </div>
+                <div class="form-item">
+                        
+                    <div>
+                        <select id="store01" name="store">
+                            <option value="">Select Store</option>
+                            <% stores.forEach(store => { %>
+                                <option value="<%= store.storeid %>"><%= store.storename %></option>
+                            <% }) %>
+                        </select>
+                        
+                    </div>
+                </div>
+                <div class="form-item">
+                    
+                    <div>
+                        <select id="category01" name="category">
+                            <option value="">Select Category</option>
+                        </select>
+                        
+                    </div>
                 </div>
             </div>
             <script>
@@ -103,37 +128,7 @@
                     <!-- Rows dynamically added here -->
                 </tbody>
             </table>
-            <div class="breakLine">
-                <hr>
-            </div>
-            <label class="label1">To</label>
-            <div class="form-row3">
-                
-                <div class="form-item">
-                    
-                    <div>
-                        <label for="store">Store</label>
-                        <select id="store01" name="store">
-                            <option value="">Select Store</option>
-                            <% stores.forEach(store => { %>
-                                <option value="<%= store.storeid %>"><%= store.storename %></option>
-                            <% }) %>
-                        </select>
-                        
-                    </div>
-                </div>
-                <div class="form-item">
-                    
-                    <div>
-                        <label for="category">Category</label>
-                        <select id="category01" name="category">
-                            <option value="">Select Category</option>
-                        </select>
-                        
-                    </div>
-                </div>
-                
-            </div>
+            
             <script>
                 document.getElementById('store01').addEventListener('change', async function () {
                     const storeId = this.value; // Get selected store ID
@@ -171,13 +166,11 @@
                     <tr>
                         <th>No.</th>
                         <th>Item Name</th>
-                        <th>Store Name</th>
-                        <th>Category Name</th>
+                        <th>Store, Category Name</th>
                         <th>Exp Date</th>
                         <th>Transfer Qty</th>
                         <th>Remaining Qty</th>
-                        <th>T Store Name</th>
-                        <th>T Location Name</th>
+                        <th>T Store, Category Name</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -343,13 +336,11 @@
             newRow.innerHTML = `
                 <td>${rowCount + 1}</td>
                 <td>${itemName}</td>
-                <td>${storeName}</td>
-                <td>${categoryName}</td>
+                <td>${storeName},${categoryName}</td>
                 <td>${expDate}</td>
                 <td>${transactionQty}</td>
                 <td>${remainingQty}</td>
-                <td>${storeName01}</td>
-                <td>${categoryName01}</td>
+                <td>${storeName01},${categoryName01}</td>
 
                 <td>
                     <input type="hidden" name="itemid" value="${itemId}">
@@ -421,7 +412,7 @@
         function calculateTotalQuantity() {
             const transactionTableBody = document.getElementById('transactionTable').getElementsByTagName('tbody')[0];
             const totalQuantity = Array.from(transactionTableBody.rows).reduce((sum, row) => {
-                const transferQty = parseInt(row.cells[5].textContent.trim()) || 0;
+                const transferQty = parseInt(row.cells[4].textContent.trim()) || 0;
                 return sum + transferQty;
             }, 0);
 
@@ -463,9 +454,9 @@
             const items = rows.map(row => ({
                 itemId: parseInt(row.querySelector('input[name="itemid"]').value),
                 itemName: row.cells[1].textContent.trim(),
-                expDate:row.cells[4].textContent.trim(),
-                transferQty: parseInt(row.cells[5].textContent.trim()),
-                remainingQty: parseInt(row.cells[6].textContent.trim()),
+                expDate:row.cells[3].textContent.trim(),
+                transferQty: parseInt(row.cells[4].textContent.trim()),
+                remainingQty: parseInt(row.cells[5].textContent.trim()),
             }));
             try {
                 // Send data to the backend

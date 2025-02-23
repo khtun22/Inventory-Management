@@ -587,6 +587,16 @@ table th {
     font-size: 20px;
     text-align: center;
 }
+.label4 {
+    display: flex;
+    font-weight: bold;
+    display: block;
+    width: 100%;
+    font-size: 20px;
+    align-items:center ;
+    text-align: center;
+    margin-bottom: 10px;
+}
 
 .breakLine hr {
     border: none;
@@ -1203,4 +1213,35 @@ h1 {
 }
 .form-rowr div:last-child {
     margin-right: 0;
+}
+
+.form-row5 {
+    display: flex;
+    margin-bottom: 15px;
+    justify-content: space-around;
+    
+}
+
+.form-row5 label {
+    font-weight: bold;
+    display: inline-block;
+    width: 100%;
+}
+.form-row5 select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-row5 select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.form-item2 {
+    flex: 1;
+    text-align: center;
+    margin-top: 5px;
 }

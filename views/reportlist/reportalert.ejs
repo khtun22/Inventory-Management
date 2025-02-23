@@ -3,14 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report Alert</title>
+    <title>Alert Report</title>
     <link rel="stylesheet" href="/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <!-- Sidebar -->
     <%- include('../partials/sidebar', { username: user.username, userid: user.userid }) %> 
 
     <!-- Main Content -->
-    
+    <div class="content-container">
+        <div class="form-container">
+            <div class="top-header">
+                <label>Alert Report</label>
+                <button class="btn btn-cancel" onclick="location.href='/report'">Back</button>
+                
+            </div>
+
+            <div class="breakLine"><hr></div>
+
+            <!-- Radio Filter -->
+            <div class="filter-container">
+                <label><input type="radio" name="filter" value="all" checked> All</label>
+                <label><input type="radio" name="filter" value="outofstock"> Out of Stock</label>
+                <label><input type="radio" name="filter" value="lowstock"> Low Stock</label>
+                <label><input type="radio" name="filter" value="overstock"> Over Stock</label>
+                <label><input type="radio" name="filter" value="expire"> Expired</label>
+            </div>
+
+            <div class="breakLine"><hr></div>
+
+            <div class="top-bar3">
+                <div class="export-dropdown">
+                    <button class="export-button">
+                        <span class="icon">&#9660;</span> Export
+                    </button>
+                    <div class="dropdown-content">
+                        <button onclick="exportToExcel()">📂 Export to Excel</button>
+                        <button onclick="printPDF()">🖨️ Print PDF</button>
+                    </div>
+                </div>
+            </div>
+
+            <table id="alertTable" class="custom-table">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Item Name</th>
+                        <th>Store Name</th>
+                        <th>Category Name</th>
+                        <th>Item Qty</th>
+                        <th>Alert Qty</th>
+                        <th>Alert Condition</th>
+                        <th>Exp Date</th>
+                        <th>Alert Date</th>
+                    </tr>
+                </thead>
+                <tbody id="alertBody">
+                    <!-- Data will be inserted dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchData("all"); // Load all data initially
+        });
+
+        document.querySelectorAll('input[name="filter"]').forEach(radio => {
+            radio.addEventListener("change", function () {
+                fetchData(this.value);
+                updateTitle(this.value);
+            });
+        });
+
+        async function fetchData(filter) {
+            try {
+                const response = await fetch('/reportlist/reportalert/filter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filter })
+                });
+
+                const data = await response.json();
+                const tbody = document.getElementById("alertBody");
+                tbody.innerHTML = "";
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center;">No alert items found.</td></tr>`;
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const row = `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${item.itemname}</td>
+                            <td>${item.storename}</td>
+                            <td>${item.categoryname}</td>
+                            <td>${item.itemqty}</td>
+                            <td>${item.alertqty || 'N/A'}</td>
+                            <td>${item.alertcon ? item.alertcon.toUpperCase() : 'N/A'}</td>
+                            <td>${item.expdate || 'N/A'}</td>
+                            <td>${item.alertdate || 'N/A'}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error("Error fetching alert data:", error);
+            }
+        }
+
+        function updateTitle(filter) {
+            const titleMap = {
+                "all": "All Alert Report",
+                "outofstock": "Out of Stock Item Report",
+                "lowstock": "Low Stock Item Report",
+                "overstock": "Over Stock Item Report",
+                "expire": "Expired Item Report"
+            };
+            document.getElementById("reportTitle").textContent = titleMap[filter] || "Alert Report";
+        }
+
+        function exportToExcel() {
+            const title = document.getElementById("reportTitle").textContent;
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.table_to_sheet(document.getElementById("alertTable"));
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            XLSX.writeFile(wb, title + ".xlsx");
+        }
+
+        function printPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Title
+            const title = document.getElementById("reportTitle").textContent;
+            doc.setFontSize(14);
+            doc.text(title, 10, 10);
+
+            // Table Data Extraction
+            const table = document.getElementById("alertTable");
+            const rows = [...table.rows].slice(1);
+            let tableData = [];
+
+            rows.forEach(row => {
+                if (row.style.display !== "none") {
+                    let rowData = [...row.cells].map(cell => cell.textContent.trim());
+                    tableData.push(rowData);
+                }
+            });
+
+            // AutoTable Generation
+            doc.autoTable({
+                head: [["No.", "Item Name", "Store Name", "Category Name", "Item Qty", "Alert Qty", "Alert Condition", "Exp Date", "Alert Date"]],
+                body: tableData,
+                startY: 20,
+                styles: { fontSize: 10 },
+                theme: 'striped'
+            });
+
+            doc.save(title + ".pdf");
+        }
+    </script>
 </body>
 </html>
