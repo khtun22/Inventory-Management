@@ -12,6 +12,7 @@ router.get('/editHistory', (req, res) => {
 router.post('/editHistory/getTransactions', async (req, res) => {
     const { filter, startDate, endDate } = req.body;
     const userId = req.session.user.userid;
+    
     try {
         // Base query
         let query = `

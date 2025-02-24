@@ -1245,3 +1245,152 @@ h1 {
     text-align: center;
     margin-top: 5px;
 }
+
+.stats {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.stat-box {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: transform 0.2s;
+    flex: 1;
+    margin: 5px;
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+}
+
+.stat-box h3 {
+    font-size: 50px;
+    margin: 0;
+    margin-top: 10px;
+}
+
+.stat-box p {
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0 0;
+    font-weight: bold;
+
+}
+
+/* Chart Section */
+.chart-container {
+    width: 50%;
+    max-width: 40px;
+    margin-top: 20px;
+}
+
+canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .stats {
+        flex-direction: column;
+        align-items: center;
+    }
+    .dashboard-container {
+        width: 200px;
+    }
+    .chart-container {
+        width: 80%;
+    }
+}
+/* Notification Bell Icon */
+.notification-icon {
+    font-size: 24px;
+    position: relative;
+    cursor: pointer;
+    color: #ffffff; /* Darker color for better visibility */
+}
+
+/* Red Dot for Unread Notifications */
+.notification-dot {
+    width: 10px;
+    height: 10px;
+    background: red;
+    border-radius: 50%;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+/* Blinking Effect for Notification Dot */
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.blink {
+    animation: blink 1s infinite;
+}
+
+/* Notification Dropdown */
+.notification-dropdown {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background: #2c3e50;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    width: 270px;
+    padding: 15px;
+    z-index: 1000;
+    border-radius: 8px;
+    color: white;
+}
+
+/* Ensure dropdown does not go outside the screen */
+@media (max-width: 400px) {
+    .notification-dropdown {
+        right: -50px;
+    }
+}
+
+/* Notification Message */
+.notification-dropdown p {
+    color: white; /* White text for better contrast */
+    font-size: 14px;
+    margin: 0;
+    padding-bottom: 10px;
+}
+
+/* View Alerts Button */
+.notification-dropdown a.btn-view {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    background: #3498db;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 5px;
+    margin-top: 5px;
+    transition: background 0.3s;
+}
+
+.notification-dropdown a.btn-view:hover {
+    background: #2980b9;
+}
+
+/* Disabled View Alerts Button */
+.notification-dropdown a.btn-view.disabled {
+    background: grey;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+

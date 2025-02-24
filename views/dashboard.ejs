@@ -8,87 +8,138 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <%- include('partials/sidebar', { username: user.username, userid: user.userid }) %>
+    <%- include('partials/sidebar', { username: user.username, userid: user.id }) %>
+    
+
+    <div class="content-container">
+        
+        <h2>Items Activity</h2>
+        <div class="stats">
+            <div class="stat-box">
+                <p>All Items</p>
+                <h3 style="color: rgba(34, 34, 203, 0.817);" id="allItems"><%= allcount %></h3>
+                
+            </div>
+            <div class="stat-box">
+                <p>Out of Stock</p>
+                <h3 style="color: rgba(255, 0, 0, 0.759);" id="lowStock"><%= lowstock %></h3>
+                
+            </div>
+            <div class="stat-box"  >
+                <p>Over Stock</p>
+                <h3 style="color: rgba(0, 128, 0, 0.922);" id="overStock"><%= overstock %></h3>
+                
+            </div>
+            <div class="stat-box">
+                <p>Expired</p>
+                <h3 style="color: rgba(255, 166, 0, 0.916);" id="expiredItems"><%= expiredate %></h3>
+                
+            </div>
+            <div class="stat-box">
+                <canvas id="itemsChart" width="400" height="400"></canvas>
+            </div>
+            <div class="stat-box">
+                <p>Total InStock Qty</p>
+                <h3 style="color: rgba(0, 0, 0, 0.916);" id="instockItem"><%= instockqty %></h3>
+                
+            </div>
+        </div>
+        <div class="stats">
+            <canvas id="activityChart" width="400" height="150"></canvas>
+        </div>
         
     </div>
-
+    
+    <!-- JavaScript Code -->
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const ctx = document.getElementById('transactionChart').getContext('2d');
+        document.addEventListener("DOMContentLoaded", function () {
+            var allItems = parseInt(document.getElementById('allItems').innerText) || 0;
+            var lowStock = parseInt(document.getElementById('lowStock').innerText) || 0;
+            var overStock = parseInt(document.getElementById('overStock').innerText) || 0;
+            var expiredItems = parseInt(document.getElementById('expiredItems').innerText) || 0;
+            var remainingItems = Math.max(0, allItems - (lowStock + overStock + expiredItems));
 
-            try {
-                // Fetch transaction data from the backend
-                const response = await fetch('/dashboard/transaction-data');
-                const data = await response.json();
-
-                // Prepare the chart data
-                const labels = data.labels; // Dates
-                const incomingData = labels.map(date => {
-                    const found = data.IN.find(d => d.date === date);
-                    return found ? found.count : 0; // Default to 0 if no data for that date
-                });
-                const outgoingData = labels.map(date => {
-                    const found = data.OUT.find(d => d.date === date);
-                    return found ? found.count : 0;
-                });
-                const transferData = labels.map(date => {
-                    const found = data.TRAN.find(d => d.date === date);
-                    return found ? found.count : 0;
-                });
-
-                // Create the chart
-                new Chart(ctx, {
-                    type: 'line', // Line chart
-                    data: {
-                        labels: labels, // Dates as labels
-                        datasets: [
-                            {
-                                label: 'Incoming',
-                                data: incomingData,
-                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                borderColor: 'rgba(75, 192, 192, 1)',
-                                borderWidth: 1
+            var ctx = document.getElementById('itemsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [], // Remove static labels
+                    datasets: [{
+                        data: [lowStock, overStock, expiredItems, remainingItems],
+                        backgroundColor: ['rgba(255, 0, 0, 0.759)', 'rgba(0, 128, 0, 0.922)', 'rgba(255, 166, 0, 0.916)', 'rgba(62, 58, 64, 0.714)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Item Overview', 
+                            font: {
+                                size: 16
                             },
-                            {
-                                label: 'Outgoing',
-                                data: outgoingData,
-                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                borderColor: 'rgba(255, 99, 132, 1)',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'Transfer',
-                                data: transferData,
-                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                borderWidth: 1
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true
+                            padding: {
+                                top: 5,
+                                bottom: 5
                             }
                         },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(tooltipItem) {
-                                        return ` ${tooltipItem.raw} transactions`;
-                                    }
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    var labels = ['Out of Stock', 'Over Stock', 'Expired', 'Remaining'];
+                                    var value = tooltipItem.raw;
+                                    return labels[tooltipItem.dataIndex] + ': ' + value;
                                 }
                             }
                         }
                     }
-                });
-            } catch (error) {
-                console.error('Error loading chart data:', error);
-                alert('Failed to load chart data');
-            }
+                }
+            });
         });
+        document.addEventListener("DOMContentLoaded", function () {
+            var incomingQty = parseInt("<%= incomingqty %>") || 0;
+            var outgoingQty = parseInt("<%= outgoingqty %>") || 0;
+            var transferQty = parseInt("<%= transferqty %>") || 0;
+            var adjustmentQty = parseInt("<%= adjustmentqty %>") || 0;
+
+            var activityCtx = document.getElementById('activityChart').getContext('2d');
+            new Chart(activityCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['IN', 'OUT', 'TRAN', 'ADJ'],
+                    datasets: [{
+                        data: [incomingQty, outgoingQty, transferQty, adjustmentQty],
+                        backgroundColor: ['rgba(34, 34, 203, 0.817)', 'rgba(255, 0, 0, 0.759)', 'rgba(86, 14, 158, 0.801)', 'rgba(255, 166, 0, 0.916)'],
+                        borderColor: ['darkblue', 'darkred', 'darkpurple', 'darkorange'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Horizontal bar format (labels on the left)
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'This Month Activity',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            display: false // Hides the dataset label
+                        }
+                    }
+                }
+            });
+        });
+
     </script>
 </body>
 </html>

@@ -32,6 +32,7 @@ const editRoutes = require('./routes/editRoutes');
 const alertRoutes = require('./routes/alertRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 // Use routes
 app.use('/', userRoutes);
 app.use('/', dashboardRoutes); 
@@ -42,6 +43,7 @@ app.use('/', adjustmentRoutes);
 app.use('/', alertRoutes);
 app.use('/', profileRoutes);
 app.use('/', reportRoutes);
+app.use('/', notificationRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;

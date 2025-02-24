@@ -85,12 +85,7 @@ router.post('/register', async (req, res) => {
 });
 
 // GET /dashboard
-router.get('/dashboard', (req, res) => {
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
-    res.render('dashboard', { title: 'Dashboard', user: req.session.user });
-});
+
 
 // GET /logout
 router.get('/logout', (req, res) => {
