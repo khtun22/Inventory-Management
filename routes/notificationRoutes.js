@@ -1,97 +1,112 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../models/db');
+const db = require('../models/db'); 
 
-// Fetch notifications
-router.get('/check', async (req, res) => {
-    const userid = req.session.user.userid;
+// Middleware to check if user is logged in
+router.use((req, res, next) => {
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+    next();
+});
 
+// Dashboard Route
+router.get('/dashboard', async (req, res) => {
+    const userId = req.session.user.userid;
     try {
-        // Get the user's alert time in HH:MM format
-        const [user] = await db.query(`SELECT TIME_FORMAT(alerttime, '%H:%i') AS alerttime FROM user WHERE userid = ?`, [userid]);
-
-        if (!user.length) {
-            return res.status(404).json({ success: false, message: "User not found" });
+        if (!userId) {
+            return res.redirect('/login');
         }
 
-        const alerttime = user[0].alerttime;
-        
-        // Get current time and allow ±1 min variation
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
-        
-        const oneMinuteBefore = new Date(now.getTime() - 60000).toTimeString().slice(0, 5);
-        const oneMinuteAfter = new Date(now.getTime() + 60000).toTimeString().slice(0, 5);
+        // Get default current month data
+        const [incomingResult] = await db.query(
+            `SELECT COUNT(transactionid) AS INCount FROM transaction 
+            WHERE tranname = 'IN' AND MONTH(trandate) = MONTH(CURRENT_DATE()) 
+            AND YEAR(trandate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
+            [userId]
+        );
 
-        console.log(`Checking alerts at ${currentTime}, User Alert Time: ${alerttime}`);
-        
-        // Allow ±1 min tolerance in case of time mismatch
-        if ([currentTime, oneMinuteBefore, oneMinuteAfter].includes(alerttime)) {
-            console.log("✅ Alert Time Matched!");
+        const [outgoingResult] = await db.query(
+            `SELECT COUNT(transactionid) AS OutCount FROM transaction 
+            WHERE tranname = 'OUT' AND MONTH(trandate) = MONTH(CURRENT_DATE()) 
+            AND YEAR(trandate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
+            [userId]
+        );
 
-            // Check if there are stock alerts
-            const [alertItems] = await db.query(`
-                SELECT COUNT(i.itemid) AS alertCount
-                FROM item i
-                JOIN category c ON i.categoryid = c.categoryid
-                JOIN store s ON c.storeid = s.storeid
-                WHERE s.userid = ?
-                AND (
-                    (i.alertqty IS NOT NULL AND i.alertcon IS NULL AND i.itemqty < i.alertqty)
-                    OR (i.alertcon = 'lt' AND i.itemqty < i.alertqty)
-                    OR (i.alertcon = 'lte' AND i.itemqty <= i.alertqty)
-                    OR (i.alertcon = 'gt' AND i.itemqty > i.alertqty)
-                    OR (i.alertcon = 'gte' AND i.itemqty >= i.alertqty)
-                    OR (i.expdate IS NOT NULL AND i.alertdate IS NULL AND i.expdate <= CURDATE())
-                    OR (i.expdate IS NOT NULL AND i.alertdate IS NOT NULL AND DATE_ADD(CURDATE(), INTERVAL i.alertdate DAY) >= i.expdate)
-                    OR (i.itemqty = 0)
-                )
-            `, [userid]);
+        const [transferResult] = await db.query(
+            `SELECT COUNT(transactionid) AS TranCount FROM transaction 
+            WHERE tranname = 'TRAN' AND MONTH(trandate) = MONTH(CURRENT_DATE()) 
+            AND YEAR(trandate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
+            [userId]
+        );
 
-            const alertCount = alertItems[0].alertCount;
-            console.log(`🔴 Found ${alertCount} alert items.`);
+        const [adjustmentResult] = await db.query(
+            `SELECT COUNT(adjustmentid) AS AdjCount FROM adjustment 
+            WHERE MONTH(adjustdate) = MONTH(CURRENT_DATE()) 
+            AND YEAR(adjustdate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
+            [userId]
+        );
 
-            if (alertCount > 0) {
-                // Check if the user already has unread notifications
-                const [existingNotification] = await db.query(`
-                    SELECT alertCount FROM notifications WHERE userid = ? AND isRead = FALSE
-                `, [userid]);
-
-                if (existingNotification.length > 0) {
-                    // Update count if it's different
-                    if (existingNotification[0].alertCount !== alertCount) {
-                        await db.query(`UPDATE notifications SET alertCount = ?, lastUpdated = NOW() WHERE userid = ? AND isRead = FALSE`, [alertCount, userid]);
-                        console.log("✅ Updated unread notification count.");
-                    }
-                } else {
-                    // Insert new notification
-                    await db.query(`INSERT INTO notifications (userid, alertCount) VALUES (?, ?)`, [userid, alertCount]);
-                    console.log("✅ Inserted new notification.");
-                }
-
-                return res.json({ success: true, alertCount, message: `You have ${alertCount} stock or expired item alerts!` });
-            }
-        }
-
-        console.log("❌ No alerts triggered.");
-        res.json({ success: false, alertCount: 0, message: "No new alerts" });
+        res.render('dashboard', {
+            user: req.session.user,
+            incomingqty: incomingResult[0].INCount || 0,
+            outgoingqty: outgoingResult[0].OutCount || 0,
+            transferqty: transferResult[0].TranCount || 0,
+            adjustmentqty: adjustmentResult[0].AdjCount || 0
+        });
     } catch (error) {
-        console.error('Error checking notifications:', error);
-        res.status(500).json({ success: false, message: "Error checking notifications" });
+        console.error('Error fetching dashboard data:', error);
+        res.status(500).send('Internal Server Error');
     }
 });
 
+// API Route to get filtered data for Activity Chart
+router.get('/dashboard/activity/:filter', async (req, res) => {
+    const userId = req.session.user.userid;
+    const filter = req.params.filter;
 
-// Mark notifications as read when the user views them
-router.post('/mark-as-read', async (req, res) => {
-    const userid = req.session.user.userid;
+    let dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE()) AND YEAR(trandate) = YEAR(CURRENT_DATE())"; 
+
+    if (filter === "last") {
+        dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(trandate) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+    } else if (filter === "last3") {
+        dateCondition = "trandate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
+    }
 
     try {
-        await db.query(`UPDATE notifications SET isRead = TRUE WHERE userid = ?`, [userid]);
-        res.json({ success: true });
+        const [incomingResult] = await db.query(
+            `SELECT COUNT(transactionid) AS INCount FROM transaction 
+            WHERE tranname = 'IN' AND ${dateCondition} AND userid = ?`, 
+            [userId]
+        );
+
+        const [outgoingResult] = await db.query(
+            `SELECT COUNT(transactionid) AS OutCount FROM transaction 
+            WHERE tranname = 'OUT' AND ${dateCondition} AND userid = ?`, 
+            [userId]
+        );
+
+        const [transferResult] = await db.query(
+            `SELECT COUNT(transactionid) AS TranCount FROM transaction 
+            WHERE tranname = 'TRAN' AND ${dateCondition} AND userid = ?`, 
+            [userId]
+        );
+
+        const [adjustmentResult] = await db.query(
+            `SELECT COUNT(adjustmentid) AS AdjCount FROM adjustment 
+            WHERE adjustdate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) AND userid = ?`, 
+            [userId]
+        );
+
+        res.json({
+            incomingqty: incomingResult[0].INCount || 0,
+            outgoingqty: outgoingResult[0].OutCount || 0,
+            transferqty: transferResult[0].TranCount || 0,
+            adjustmentqty: adjustmentResult[0].AdjCount || 0
+        });
     } catch (error) {
-        console.error('Error marking notifications as read:', error);
-        res.status(500).json({ success: false });
+        console.error('Error fetching activity data:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 

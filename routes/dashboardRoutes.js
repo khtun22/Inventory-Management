@@ -13,6 +13,7 @@ router.use((req, res, next) => {
 // Dashboard Route
 router.get('/dashboard', async (req, res) => {
     const userId = req.session.user.userid;
+    const filter = req.query.filter || "current"; 
     try {
 
         if (!userId) {
@@ -65,29 +66,39 @@ router.get('/dashboard', async (req, res) => {
                                 WHERE s.userid = ? `;
 
                             
-        const incomingQuery = `SELECT count(transactionid) AS INCount
+        let dateCondition, dateAdjCondition;
+        if (filter === "last") {
+            dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(trandate) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+            dateAdjCondition = "MONTH(adjustdate) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(adjustdate) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+        } else if (filter === "last3") {
+            dateCondition = "trandate >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)";
+            dateAdjCondition = "adjustdate >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)";
+        } else {
+            dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE()) AND YEAR(trandate) = YEAR(CURRENT_DATE())";
+            dateAdjCondition = "MONTH(adjustdate) = MONTH(CURRENT_DATE()) AND YEAR(adjustdate) = YEAR(CURRENT_DATE())";
+        }
+
+        // Queries with dynamic date condition
+        const incomingQuery = `SELECT COUNT(transactionid) AS INCount 
                                 FROM transaction 
-                                WHERE tranname ='IN'
-                                AND MONTH(trandate) = MONTH(CURRENT_DATE())
-                                AND YEAR(trandate) = YEAR(CURRENT_DATE())
-                                AND userid = ? `;
-        const outgoingQuery = `SELECT count(transactionid) AS OutCount
+                                WHERE tranname ='IN' 
+                                AND ${dateCondition} AND userid = ?`;
+                                
+        const outgoingQuery = `SELECT COUNT(transactionid) AS OutCount 
                                 FROM transaction 
-                                WHERE tranname ='OUT'
-                                AND MONTH(trandate) = MONTH(CURRENT_DATE())
-                                AND YEAR(trandate) = YEAR(CURRENT_DATE())
-                                AND userid = ? `;
-        const transferQuery = `SELECT count(transactionid) as TranCount
+                                WHERE tranname ='OUT' 
+                                AND ${dateCondition} AND userid = ?`;
+
+        const transferQuery = `SELECT COUNT(transactionid) AS TranCount 
                                 FROM transaction 
-                                WHERE tranname ='TRAN'
-                                AND MONTH(trandate) = MONTH(CURRENT_DATE())
-                                AND YEAR(trandate) = YEAR(CURRENT_DATE())
-                                AND userid = ? `;
-        const adjustmentQuery = `SELECT count(adjustmentid) as AdjCount
+                                WHERE tranname ='TRAN' 
+                                AND ${dateCondition} AND userid = ?`;
+
+        const adjustmentQuery = `SELECT COUNT(adjustmentid) AS AdjCount 
                                 FROM adjustment 
-                                WHERE MONTH(adjustdate) = MONTH(CURRENT_DATE())
-                                AND YEAR(adjustdate) = YEAR(CURRENT_DATE())
-                                AND userid = ? `;
+                                WHERE ${dateAdjCondition}
+                                AND userid = ?`;
+
         
                                 
         // Execute queries
@@ -113,9 +124,6 @@ router.get('/dashboard', async (req, res) => {
         const transferqty = transferResult.length > 0 ? transferResult[0].TranCount : 0;
         const adjustmentqty = adjustmentResult.length > 0 ? adjustmentResult[0].AdjCount : 0;
 
-        // Debug log to check if values exist before rendering
-
-
         // Pass data to the EJS template
         res.render('dashboard', {
             user: req.session.user,
@@ -127,12 +135,58 @@ router.get('/dashboard', async (req, res) => {
             incomingqty,
             outgoingqty,
             transferqty,
-            adjustmentqty
+            adjustmentqty,
+            selectedFilter: filter
         });
 
     } catch (error) {
         console.error('Error fetching dashboard data:', error);
         res.status(500).send('Internal Server Error');
+    }
+});
+
+router.get('/dashboard/chart-data', async (req, res) => {
+    const userId = req.session.user.userid;
+    const filter = req.query.filter || "current"; // Default to This Month
+
+    try {
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "User not logged in" });
+        }
+
+        let dateCondition, dateAdjCondition;
+        if (filter === "last") {
+            dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(trandate) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+            dateAdjCondition = "MONTH(adjustdate) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(adjustdate) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+        } else if (filter === "last3") {
+            dateCondition = "trandate >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)";
+            dateAdjCondition = "adjustdate >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)";
+        } else {
+            dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE()) AND YEAR(trandate) = YEAR(CURRENT_DATE())";
+            dateAdjCondition = "MONTH(adjustdate) = MONTH(CURRENT_DATE()) AND YEAR(adjustdate) = YEAR(CURRENT_DATE())";
+        }
+
+        const incomingQuery = `SELECT COUNT(transactionid) AS INCount FROM transaction WHERE tranname ='IN' AND ${dateCondition} AND userid = ?`;
+        const outgoingQuery = `SELECT COUNT(transactionid) AS OutCount FROM transaction WHERE tranname ='OUT' AND ${dateCondition} AND userid = ?`;
+        const transferQuery = `SELECT COUNT(transactionid) AS TranCount FROM transaction WHERE tranname ='TRAN' AND ${dateCondition} AND userid = ?`;
+        const adjustmentQuery = `SELECT COUNT(adjustmentid) AS AdjCount FROM adjustment WHERE ${dateAdjCondition} AND userid = ?`;
+
+        const [incomingResult] = await db.query(incomingQuery, [userId]);
+        const [outgoingResult] = await db.query(outgoingQuery, [userId]);
+        const [transferResult] = await db.query(transferQuery, [userId]);
+        const [adjustmentResult] = await db.query(adjustmentQuery, [userId]);
+
+        res.json({
+            success: true,
+            incomingqty: incomingResult[0].INCount || 0,
+            outgoingqty: outgoingResult[0].OutCount || 0,
+            transferqty: transferResult[0].TranCount || 0,
+            adjustmentqty: adjustmentResult[0].AdjCount || 0
+        });
+
+    } catch (error) {
+        console.error('Error fetching activity chart data:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
 

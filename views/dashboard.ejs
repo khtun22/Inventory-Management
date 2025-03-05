@@ -44,9 +44,20 @@
                 
             </div>
         </div>
-        <div class="stats">
-            <canvas id="activityChart" width="400" height="150"></canvas>
+        
+        <div class="filter-container">
+            <label for="activityFilter" class="filter-label">Show Data for:</label>
+            <select id="activityFilter" class="filter-dropdown" onchange="updateActivityChart()">
+                <option value="current" selected>This Month</option>
+                <option value="last">Last Month</option>
+                <option value="last3">Last 3 Months</option>
+            </select>
         </div>
+        
+        <div class="activity-chart-container">
+            <canvas id="activityChart"></canvas>
+        </div>
+        
         
     </div>
     
@@ -98,47 +109,68 @@
             });
         });
         document.addEventListener("DOMContentLoaded", function () {
-            var incomingQty = parseInt("<%= incomingqty %>") || 0;
-            var outgoingQty = parseInt("<%= outgoingqty %>") || 0;
-            var transferQty = parseInt("<%= transferqty %>") || 0;
-            var adjustmentQty = parseInt("<%= adjustmentqty %>") || 0;
+            loadActivityChart("current"); // Load default data for This Month
+        });
 
-            var activityCtx = document.getElementById('activityChart').getContext('2d');
-            new Chart(activityCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['IN', 'OUT', 'TRAN', 'ADJ'],
-                    datasets: [{
-                        data: [incomingQty, outgoingQty, transferQty, adjustmentQty],
-                        backgroundColor: ['rgba(34, 34, 203, 0.817)', 'rgba(255, 0, 0, 0.759)', 'rgba(86, 14, 158, 0.801)', 'rgba(255, 166, 0, 0.916)'],
-                        borderColor: ['darkblue', 'darkred', 'darkpurple', 'darkorange'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', // Horizontal bar format (labels on the left)
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true
-                        }
+        async function loadActivityChart(filter) {
+            try {
+                const response = await fetch(`/dashboard/chart-data?filter=${filter}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    console.error("Failed to fetch activity data.");
+                    return;
+                }
+
+                const activityCtx = document.getElementById('activityChart').getContext('2d');
+
+                // Destroy the existing chart if it exists
+                if (window.activityChartInstance) {
+                    window.activityChartInstance.destroy();
+                }
+
+                // Create new chart
+                window.activityChartInstance = new Chart(activityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['IN', 'OUT', 'TRAN', 'ADJ'],
+                        datasets: [{
+                            data: [data.incomingqty, data.outgoingqty, data.transferqty, data.adjustmentqty],
+                            backgroundColor: ['rgba(34, 34, 203, 0.817)', 'rgba(255, 0, 0, 0.759)', 'rgba(86, 14, 158, 0.801)', 'rgba(255, 166, 0, 0.916)'],
+                            borderColor: ['darkblue', 'darkred', 'darkpurple', 'darkorange'],
+                            borderWidth: 1
+                        }]
                     },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'This Month Activity',
-                            font: {
-                                size: 16
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true
                             }
                         },
-                        legend: {
-                            display: false // Hides the dataset label
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: filter === 'current' ? 'This Month Activity' : (filter === 'last' ? 'Last Month Activity' : 'Last 3 Months Activity'),
+                                font: { size: 16 }
+                            },
+                            legend: { display: false }
                         }
                     }
-                }
-            });
-        });
+                });
+
+            } catch (error) {
+                console.error("Error loading activity chart:", error);
+            }
+        }
+
+        // Function to trigger on dropdown change
+        function updateActivityChart() {
+            const filter = document.getElementById("activityFilter").value;
+            loadActivityChart(filter);
+        }
 
     </script>
 </body>
