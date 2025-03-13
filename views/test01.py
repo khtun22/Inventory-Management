@@ -1,12 +1,16 @@
 import random
 import heapq
 import time
+from collections import defaultdict
 
 def totorandom_number():
     
-    a=['cda','fed', 'jih', 'mnk']
-    for i in range(len(a)):
-        a[i]="".join(sorted(a[i]))
-    print(a[0][0])
+    a="asdfasdf"
+    
+    b="c"
+    for i in a:
+        print(f"i is :{i}")
+        if not b in a:
+            print(f"b is : {b}")
     
 totorandom_number()  # BAD SET

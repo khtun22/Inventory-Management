@@ -9,104 +9,96 @@ router.use((req, res, next) => {
     }
     next();
 });
-
-// Dashboard Route
-router.get('/dashboard', async (req, res) => {
-    const userId = req.session.user.userid;
+// Check alert conditions and trigger notifications
+async function checkAndSendNotifications() {
     try {
-        if (!userId) {
-            return res.redirect('/login');
+        // Get all users who have alerttime set
+        const [users] = await db.query("SELECT userid, alerttime FROM user WHERE alerttime IS NOT NULL");
+
+        const now = new Date();
+        const currentTime = now.toTimeString().split(' ')[0]; // Format HH:MM:SS
+
+        for (const user of users) {
+            if (user.alerttime.slice(0, 5) === currentTime.slice(0, 5)) { // Match HH:MM
+                const [alert] = await db.query(
+                    `SELECT COUNT(i.itemid) AS alertCount
+                    FROM item i
+                    JOIN category c ON i.categoryid = c.categoryid
+                    JOIN store s ON c.storeid = s.storeid
+                    WHERE s.userid = ?
+                    AND (
+                        (i.alertqty IS NOT NULL AND i.alertcon IS NULL AND i.itemqty < i.alertqty)
+                        OR (i.alertcon = 'lt' AND i.itemqty < i.alertqty)
+                        OR (i.alertcon = 'lte' AND i.itemqty <= i.alertqty)
+                        OR (i.alertcon = 'gt' AND i.itemqty > i.alertqty)
+                        OR (i.alertcon = 'gte' AND i.itemqty >= i.alertqty)
+                        OR (i.expdate IS NOT NULL AND i.alertdate IS NULL AND i.expdate <= CURDATE())
+                        OR (i.expdate IS NOT NULL AND i.alertdate IS NOT NULL AND DATE_ADD(CURDATE(), INTERVAL i.alertdate DAY) >= i.expdate)
+                        OR (i.itemqty = 0)
+                    )`, [user.userid]
+                );
+
+                if (alert[0].alertCount > 0) {
+                    const message = `You have ${alert[0].alertCount} stock alerts.`;
+
+                    // Check if an unread notification exists, update it
+                    const [existingNotification] = await db.query(
+                        "SELECT id FROM notifications WHERE userid = ? AND is_read = FALSE",
+                        [user.userid]
+                    );
+
+                    if (existingNotification.length > 0) {
+                        await db.query(
+                            "UPDATE notifications SET message = ? WHERE id = ?",
+                            [message, existingNotification[0].id]
+                        );
+                    } else {
+                        // Insert a new notification
+                        await db.query(
+                            "INSERT INTO notifications (userid, message) VALUES (?, ?)",
+                            [user.userid, message]
+                        );
+                    }
+                }
+            }
         }
-
-        // Get default current month data
-        const [incomingResult] = await db.query(
-            `SELECT COUNT(transactionid) AS INCount FROM transaction 
-            WHERE tranname = 'IN' AND MONTH(trandate) = MONTH(CURRENT_DATE()) 
-            AND YEAR(trandate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
-            [userId]
-        );
-
-        const [outgoingResult] = await db.query(
-            `SELECT COUNT(transactionid) AS OutCount FROM transaction 
-            WHERE tranname = 'OUT' AND MONTH(trandate) = MONTH(CURRENT_DATE()) 
-            AND YEAR(trandate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
-            [userId]
-        );
-
-        const [transferResult] = await db.query(
-            `SELECT COUNT(transactionid) AS TranCount FROM transaction 
-            WHERE tranname = 'TRAN' AND MONTH(trandate) = MONTH(CURRENT_DATE()) 
-            AND YEAR(trandate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
-            [userId]
-        );
-
-        const [adjustmentResult] = await db.query(
-            `SELECT COUNT(adjustmentid) AS AdjCount FROM adjustment 
-            WHERE MONTH(adjustdate) = MONTH(CURRENT_DATE()) 
-            AND YEAR(adjustdate) = YEAR(CURRENT_DATE()) AND userid = ?`, 
-            [userId]
-        );
-
-        res.render('dashboard', {
-            user: req.session.user,
-            incomingqty: incomingResult[0].INCount || 0,
-            outgoingqty: outgoingResult[0].OutCount || 0,
-            transferqty: transferResult[0].TranCount || 0,
-            adjustmentqty: adjustmentResult[0].AdjCount || 0
-        });
     } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        res.status(500).send('Internal Server Error');
+        console.error("Error checking notifications:", error);
     }
-});
+}
 
-// API Route to get filtered data for Activity Chart
-router.get('/dashboard/activity/:filter', async (req, res) => {
-    const userId = req.session.user.userid;
-    const filter = req.params.filter;
+// Run check every minute
+setInterval(checkAndSendNotifications, 60000);
 
-    let dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE()) AND YEAR(trandate) = YEAR(CURRENT_DATE())"; 
-
-    if (filter === "last") {
-        dateCondition = "MONTH(trandate) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(trandate) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
-    } else if (filter === "last3") {
-        dateCondition = "trandate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
-    }
-
+// API to fetch unread notifications
+router.get('/notification/check', async (req, res) => {
+    const userid = req.session.user.userid;
     try {
-        const [incomingResult] = await db.query(
-            `SELECT COUNT(transactionid) AS INCount FROM transaction 
-            WHERE tranname = 'IN' AND ${dateCondition} AND userid = ?`, 
-            [userId]
-        );
-
-        const [outgoingResult] = await db.query(
-            `SELECT COUNT(transactionid) AS OutCount FROM transaction 
-            WHERE tranname = 'OUT' AND ${dateCondition} AND userid = ?`, 
-            [userId]
-        );
-
-        const [transferResult] = await db.query(
-            `SELECT COUNT(transactionid) AS TranCount FROM transaction 
-            WHERE tranname = 'TRAN' AND ${dateCondition} AND userid = ?`, 
-            [userId]
-        );
-
-        const [adjustmentResult] = await db.query(
-            `SELECT COUNT(adjustmentid) AS AdjCount FROM adjustment 
-            WHERE adjustdate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) AND userid = ?`, 
-            [userId]
+        const [notifications] = await db.query(
+            "SELECT id, message FROM notifications WHERE userid = ? AND is_read = FALSE",
+            [userid]
         );
 
         res.json({
-            incomingqty: incomingResult[0].INCount || 0,
-            outgoingqty: outgoingResult[0].OutCount || 0,
-            transferqty: transferResult[0].TranCount || 0,
-            adjustmentqty: adjustmentResult[0].AdjCount || 0
+            success: true,
+            alertCount: notifications.length,
+            message: notifications.length > 0 ? notifications[0].message : ""
         });
     } catch (error) {
-        console.error('Error fetching activity data:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error("Error fetching notifications:", error);
+        res.status(500).json({ success: false, message: "Error fetching notifications." });
+    }
+});
+
+// Mark notifications as read
+router.post('/notification/mark-as-read', async (req, res) => {
+    const userid = req.session.user.userid;
+    try {
+        await db.query("UPDATE notifications SET is_read = TRUE WHERE userid = ?", [userid]);
+        res.status(200).send("Notifications marked as read.");
+    } catch (error) {
+        console.error("Error marking notifications as read:", error);
+        res.status(500).send("Failed to mark notifications as read.");
     }
 });
 

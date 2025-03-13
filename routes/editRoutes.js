@@ -138,7 +138,7 @@ router.post('/editHistorydetail/save', async (req, res) => {
                         [sourceItemId]
                     );
                     const sourceCurrentQty = sourceItem[0].itemqty;
-                    const newSourceQty = editedQty - originalQty + sourceCurrentQty;
+                    const newSourceQty = sourceCurrentQty - (editedQty - originalQty); 
 
                     await db.query(
                         `UPDATE item SET itemqty = ? WHERE itemid = ?`,
@@ -151,7 +151,8 @@ router.post('/editHistorydetail/save', async (req, res) => {
                         [targetItemId]
                     );
                     const targetCurrentQty = targetItem[0].itemqty;
-                    const newTargetQty = editedQty - originalQty + targetCurrentQty;
+                    const newTargetQty = targetCurrentQty + (editedQty - originalQty); 
+
 
                     await db.query(
                         `UPDATE item SET itemqty = ? WHERE itemid = ?`,
@@ -189,7 +190,7 @@ router.post('/editHistorydetail', async (req, res) => {
     const userid = req.session.user.userid;
 
     try {
-        // 1️⃣ Get transaction data
+        // Get transaction data
         const [transactionResults] = await db.query(
             `SELECT transactionid, trandate, tranname, sourceid AS scategoryid, targetid AS tcategoryid 
              FROM transaction 
@@ -213,7 +214,7 @@ router.post('/editHistorydetail', async (req, res) => {
             .toString()
             .padStart(2, '0')}-${trandate.getFullYear()}`;
 
-        // 2️⃣ Get items related to the transaction
+        // Get items to the transaction
         const [items] = await db.query(
             `SELECT td.itemid, td.titemid, td.tranqty AS originalQty, 
                     i.itemname, i.expdate, i.itemqty AS itemqty, i.categoryid,
@@ -233,13 +234,13 @@ router.post('/editHistorydetail', async (req, res) => {
                 item.minAllow = 0;
                 item.maxAllow = item.originalQty + item.itemqty;
             } else if (transaction.tranname === 'Transfer') {
-                // Transfer: Calculate based on itemqty and titemqty
+
                 const { itemqty, titemqty, originalQty } = item;
                 
-                // minAllow: max(itemqty - titemqty, 0)
+
                 item.minAllow = Math.max(item.originalQty - titemqty, 0);
                 
-                // maxAllow: itemqty + originalQty
+
                 item.maxAllow = itemqty + originalQty;
             }
         });
@@ -248,7 +249,7 @@ router.post('/editHistorydetail', async (req, res) => {
             return res.status(404).send('No items found for this transaction.');
         }
 
-        // 3️⃣ Get store and category details for IN and OUT using the first item's categoryid
+        // Get store and category details for IN and OUT using the first item's categoryid
         if (transaction.tranname === 'Incoming' || transaction.tranname === 'Outgoing') {
             const firstCategoryId = items[0].categoryid;
             const [categoryResults] = await db.query(
@@ -265,7 +266,7 @@ router.post('/editHistorydetail', async (req, res) => {
             }
         }
 
-        // 4️⃣ Get store and category details for Transfer
+        // Get store and category details for Transfer
         if (transaction.tranname === 'Transfer') {
             // From Store and Category
             const [fromCategoryResults] = await db.query(
