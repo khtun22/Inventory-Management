@@ -1375,23 +1375,27 @@ canvas {
     }
 }
 
-
+.notification-container {
+    position: relative; /* Ensures child elements position correctly */
+    display: inline-block;
+}
 /* Notification Dropdown */
 .notification-icon {
     font-size: 24px;
     position: relative;
     cursor: pointer;
 }
-
 .notification-dot {
     width: 10px;
     height: 10px;
     background: red;
     border-radius: 50%;
     position: absolute;
-    top: 5px;
-    right: 5px;
+    top: 1px; /* Adjust for alignment */
+    right: 1px;
+    display: none; /* Default: Hidden */
 }
+
 
 .blink {
     animation: blink 1s infinite;
@@ -1403,7 +1407,6 @@ canvas {
     100% { opacity: 1; }
 }
 
-/* Notification Dropdown */
 /* Notification Dropdown */
 .notification-dropdown {
     display: none;

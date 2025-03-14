@@ -38,11 +38,12 @@
     <nav class="top-bar">
         <span class="username"></span>
         <div class="icons">
-            <a href="javascript:void(0)" class="icon-link" onclick="toggleNotifications()">
+            <a href="javascript:void(0)" class="icon-link notification-container" onclick="toggleNotifications()">
                 <i class="fas fa-bell notification-icon"></i>
-                <span id="notificationDot" class="notification-dot" style="display: none;"></span>
+                <span id="notificationDot" class="notification-dot"></span> <!-- Keep it inside -->
                 <div id="notificationPopup" class="notification-popup"></div>
             </a>
+            
             
             <div id="notificationDropdown" class="notification-dropdown">
                 <p id="notificationMessage">Checking notifications...</p>
@@ -112,10 +113,11 @@
                     viewAlerts.style.display = "block";
                     viewAlerts.classList.remove("disabled");
 
-                    // Show browser notification
+                    // Show browser and sliding notification
                     if (Notification.permission === 'granted') {
                         new Notification('Stock Alert', { body: data.message });
                     }
+                    showNotification(data.message);
                 } else {
                     notificationDot.style.display = "none";
                     notificationMessage.innerHTML = "No new alerts";
@@ -144,60 +146,7 @@
         async function markAsRead() {
             await fetch('/notification/mark-as-read', { method: 'POST' });
             document.getElementById("notificationDot").style.display = "none";
-        }document.addEventListener('DOMContentLoaded', () => {
-            checkNotifications();
-            setInterval(checkNotifications, 60000); // Auto-check every 1 min
-        });
-
-        // Ask for browser notification permission
-        if (Notification.permission !== 'granted') {
-            Notification.requestPermission();
         }
-
-        async function checkNotifications() {
-            try {
-                const response = await fetch('/notification/check');
-                const data = await response.json();
-
-                const notificationMessage = document.getElementById("notificationMessage");
-                const notificationDot = document.getElementById("notificationDot");
-                const viewAlerts = document.getElementById("viewAlerts");
-
-                if (data.success && data.alertCount > 0) {
-                    notificationDot.style.display = "inline-block";
-                    notificationMessage.innerHTML = `🔔 ${data.message}`;
-                    viewAlerts.style.display = "block";
-                    viewAlerts.classList.remove("disabled");
-
-                    // Show browser and sliding notification
-                    if (Notification.permission === 'granted') {
-                        new Notification('Stock Alert', { body: data.message });
-                    }
-                    showNotification(data.message);
-                } else {
-                    notificationDot.style.display = "none";
-                    notificationMessage.innerHTML = "No new alerts";
-                    viewAlerts.style.display = "block";
-                    viewAlerts.classList.add("disabled");
-                }
-            } catch (error) {
-                console.error("Error fetching notifications:", error);
-            }
-        }
-
-        function toggleNotifications() {
-            const dropdown = document.getElementById("notificationDropdown");
-            dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-        }
-
-        async function markAsRead() {
-            await fetch('/notification/mark-as-read', { method: 'POST' });
-            document.getElementById("notificationDot").style.display = "none";
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            checkNotifications();
-            setInterval(checkNotifications, 60000); // Auto-check every 1 min
-        });
 
         // Function to show the animated notification
         function showNotification(message) {
@@ -210,9 +159,6 @@
                 popup.classList.remove("show");
             }, 6000);
         }
-
-        // Check for notifications
-        
 
     </script>
 </body>
