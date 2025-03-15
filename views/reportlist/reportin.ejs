@@ -174,14 +174,15 @@
             // Case: If Transaction ID is entered
             if (transactionId) {
                 title = `Incoming Transaction ID: ${transactionId} - ${firstTransactionDate}`;
-                tableHeaders = ["Item Name", "Exp Date", "Quantity", "Store, Category"];
+                tableHeaders = ["No.", "Item Name", "Exp Date", "Quantity", "Store, Category"];
 
-                rows.forEach(row => {
+                rows.forEach((row, index) => {
                     if (row.style.display !== "none") { // Include only visible rows
                         let quantity = parseFloat(row.cells[4].textContent) || 0; // Column 5: Quantity
                         totalQty += quantity;
 
                         let rowData = [
+                            index + 1,  // Auto-increment "No." column
                             row.cells[2].textContent, // Item Name
                             row.cells[3].textContent, // Exp Date
                             row.cells[4].textContent, // Quantity
