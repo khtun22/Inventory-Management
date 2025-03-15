@@ -4,18 +4,26 @@
 
 https://nodejs.org/en
 
+
 https://dev.mysql.com/downloads/
+
 
 https://git-scm.com/downloads
 
+
 2️⃣ Clone the Project from GitHub
+
 
 **Download zip file and extract**
 
+
 3️⃣ Install Dependencies
 
+
 npm install
+
 npm install body-parser cors dotenv ejs express express-session font-awesome mysql mysql2 nodemon
+
 npm install moment
 
 4️⃣ Setup the Database
@@ -23,6 +31,7 @@ npm install moment
 **Open MySQL workbranch:**
 
 Run this code in MySQL workbranch
+
 create database inventory_management;
 
 read the .sql file with nodepad or VS code and copy all
@@ -33,7 +42,9 @@ paste in MySQL workbranch and execute all
 
 **Edit .env file**
 
-in DB_PASSWORD=yourpassword
+in
+
+DB_PASSWORD=yourpassword
 
 change the password using MySQL root user password and save
 
@@ -49,6 +60,7 @@ http://localhost:5000
 7️⃣ Login Credentials
 
 username: admin
+
 password: admin222
 
 
