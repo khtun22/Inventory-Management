@@ -1,39 +1,54 @@
+1️⃣ Prerequisites
+
+**Before setting up the project, ensure you have installed:**
+
+https://nodejs.org/en
+
+https://dev.mysql.com/downloads/
+
+https://git-scm.com/downloads
+
+2️⃣ Clone the Project from GitHub
+
+**Download zip file and extract**
+
+3️⃣ Install Dependencies
 
 npm install
 npm install body-parser cors dotenv ejs express express-session font-awesome mysql mysql2 nodemon
 npm install moment
 
-git init
+4️⃣ Setup the Database
 
-git remote add origin https://github.com/khtun22/Inventory-Management.git
+**Open MySQL workbranch:**
 
-git remote -v  (for checking linked correctly)
+Run this code in MySQL workbranch
+create database inventory_management;
 
-git status  ( for Check the Current Status of Your Files)
+read the .sql file with nodepad or VS code and copy all
 
-git add .
+paste in MySQL workbranch and execute all
 
-git config --global user.name "Your Name"
-git config --global user.email "your-email@example.com"
+5️⃣ Configure Environment Variables
 
-git commit -m "Initial commit - 70% project completed"
+**Edit .env file**
 
-git branch -M main
-git push -u origin main
+in DB_PASSWORD=yourpassword
+
+change the password using MySQL root user password and save
+
+6️⃣ Start the Server
+
+run
+
+node index.js
+
+http://localhost:5000
 
 
+7️⃣ Login Credentials
 
-git log --oneline (See Your Commit History)
+username: admin
+password: admin222
 
-git reset --hard <commit-id> (restore project)
-
-git push --force origin main 
-
-
-git status
-git add .
-git commit -m "Describe the update"
-
-git branch -M main
-git push origin main
 
