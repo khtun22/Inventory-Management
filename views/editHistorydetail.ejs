@@ -45,7 +45,6 @@
                 
             
             <% } else if (transaction.tranname === 'Transfer') { %>
-                <label class="label1">From</label>
                 <div class="form-row3">
                     
                     <div class="form-item">
@@ -56,12 +55,9 @@
                         <label for="from-category">Category: <%= transaction.fromCategory %></label>
  
                     </div>
-                </div>
-                <div class="breakLine">
-                    <hr>
-                </div>
-                <label class="label1">To</label>
-                <div class="form-row3">
+                    <div class="form-item">
+                        <label class="label5">To</label>
+                    </div>
                     
                     <div class="form-item">
                         <label for="to-store">Store: <%= transaction.toStore %></label>                        
@@ -69,7 +65,7 @@
                     <div class="form-item">
                         <label for="to-category">Category: <%= transaction.toCategory %></label>  
                     </div>
-                </div>  
+                </div>
             <% } %>
             
             <div class="breakLine">
